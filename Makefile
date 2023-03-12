@@ -23,7 +23,7 @@ uploadPackage:
 	${SH} twine upload dist/*
 
 test:
-	${SH} cd ./tests; ./uTests.py
+	${SH} cd ./tests; ./uTests.py --verbose
 
 clean:
 	${RM} -rf build dist *.egg-info
