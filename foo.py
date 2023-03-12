@@ -17,8 +17,8 @@ if __name__ == '__main__':
     logLevel=logging.INFO
   logging.basicConfig(format='%(asctime)s [%(filename)s:%(lineno)s-%(funcName)s()] %(levelname)s: %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p',level=logLevel)
 
-  p=dividere.connection.Pub('tcp://*:5555')
-  s=dividere.connection.Sub('tcp://localhost:5555')
+  p=dividere.connection.Publisher('tcp://*:5555')
+  s=dividere.connection.Subscriber('tcp://localhost:5555')
   time.sleep(2)
   p=None
   s=None

@@ -22,9 +22,12 @@ buildPackage:
 uploadPackage:
 	${SH} twine upload dist/*
 
+test:
+	${SH} cd ./tests; ./uTests.py
 
 clean:
 	${RM} -rf build dist *.egg-info
 	${RM} -rf ./dividere/__pycache__/
+	${RM} -rf ./tests/__pycache__/
 
 

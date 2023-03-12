@@ -42,7 +42,7 @@ class Connector:
     self.socket_.close()
     self.ctx_.term()
 
-class Pub(Connector):
+class Publisher(Connector):
   def __init__(self, endPoint):
     super(self.__class__,self).__init__()
     self.socket_=self.ctx_.socket(zmq.PUB)
@@ -52,13 +52,18 @@ class Pub(Connector):
   def send(self, msg):
     self.socket_.send(msg)
 
-class Sub(Connector):
+class Subscriber(Connector):
   def __init__(self, endPoint, topic=''):
     super(self.__class__,self).__init__()
     self.socket_=self.ctx_.socket(zmq.SUB)
     self.tid_=self.registerSocketMonitoring(self.socket_)
     self.socket_.connect(endPoint)
     self.socket_.setsockopt_string(zmq.SUBSCRIBE, topic)
+
+  def recv(self):
+    S=self.socket_.recv()
+    return S
+
 
 
 
