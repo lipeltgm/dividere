@@ -16,5 +16,15 @@ setup-22.04.1:
 	${SH} sudo apt-get install -y protobuf-compiler
 	${SH} sudo pip3 install zmq
 
+buildPackage:
+	${SH} python3 setup.py sdist bdist_wheel
+
+uploadPackage:
+	${SH} twine upload dist/*
+
+
+clean:
+	${RM} -rf build dist *.egg-info
+	${RM} -rf ./dividere/__pycache__/
 
 
