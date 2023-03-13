@@ -27,7 +27,7 @@ msg:
 
 test: msg
 	${SH} cd ./tests; protoc --proto_path=./ --python_out=. TestMsg.proto
-	${SH} cd ./tests; ./uTests.py messagingTests --verbose
+	${SH} cd ./tests; ./uTests.py messagingEncoderTests messagingTests --verbose
 #	${SH} cd ./tests; ./uTests.py --verbose
 
 
