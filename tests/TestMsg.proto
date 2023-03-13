@@ -1,0 +1,68 @@
+syntax="proto3";
+import "google/protobuf/any.proto";
+
+message testMsg01 {
+  string field1 = 1;
+  int32 field2 = 2;
+}
+
+message testDtMsg01 {
+  double field1 = 1;
+}
+
+message testDtMsg02 {
+  float field1 = 1;
+}
+
+message testDtMsg03 {
+  int32 field1 = 1;
+}
+
+message testDtMsg04 {
+  int64 field1 = 1;
+}
+
+message testDtMsg05 {
+  uint32 field1 = 1;
+}
+
+message testDtMsg06 {
+  uint64 field1 = 1;
+}
+
+message testDtMsg07 {
+  sint32 field1 = 1;
+}
+
+message testDtMsg08 {
+  sint64 field1 = 1;
+}
+
+message testDtMsg09 {
+  fixed32 field1 = 1;
+}
+
+message testDtMsg10 {
+  fixed64 field1 = 1;
+}
+
+message testDtMsg11 {
+  sfixed32 field1 = 1;
+}
+
+message testDtMsg12 {
+  sfixed64 field1 = 1;
+}
+
+message testDtMsg13 {
+  bool field1 = 1;
+}
+
+message testDtMsg14 {
+  string field1 = 1;
+}
+
+message testDtMsg15 {
+  bytes field1 = 1;
+}
+

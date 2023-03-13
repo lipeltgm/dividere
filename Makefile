@@ -22,12 +22,20 @@ buildPackage:
 uploadPackage:
 	${SH} twine upload dist/*
 
-test:
-	${SH} cd ./tests; ./uTests.py --verbose
+msg:
+	${SH} protoc --proto_path=./ --python_out=./dividere/ MsgLib.proto
+
+test: msg
+	${SH} cd ./tests; protoc --proto_path=./ --python_out=. TestMsg.proto
+	${SH} cd ./tests; ./uTests.py messagingTests --verbose
+#	${SH} cd ./tests; ./uTests.py --verbose
+
 
 clean:
 	${RM} -rf build dist *.egg-info
 	${RM} -rf ./dividere/__pycache__/
 	${RM} -rf ./tests/__pycache__/
+	${RM} -rf ./tests/TestMsg*py
+	${RM} -rf ./dividere/MsgLib*py
 
 
