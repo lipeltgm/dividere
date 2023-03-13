@@ -58,6 +58,9 @@ class Subscriber(Connector):
     self.socket_=self.ctx_.socket(zmq.SUB)
     self.tid_=self.registerSocketMonitoring(self.socket_)
     self.socket_.connect(endPoint)
+    self.subscribe(topic)
+
+  def subscribe(self, topic):
     self.socket_.setsockopt_string(zmq.SUBSCRIBE, topic)
 
   def recv(self):

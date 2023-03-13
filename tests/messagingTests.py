@@ -4,6 +4,7 @@ import dividere
 import TestMsg_pb2 as TestMsg
 import random
 import uuid
+import time
 
 class messagingEncoderTests(unittest.TestCase):
   @staticmethod
@@ -15,7 +16,7 @@ class messagingEncoderTests(unittest.TestCase):
 
   @staticmethod
   def testDtMsg01Creator():
-    retVal=TestMsg.testDtMsg02()
+    retVal=TestMsg.testDtMsg01()
     retVal.field1=random.randint(0,32767)
     return retVal
 
@@ -104,6 +105,18 @@ class messagingEncoderTests(unittest.TestCase):
     return retVal
 
   @staticmethod
+  def testNestedMsg01Creator():
+    retVal=TestMsg.testNestedMsg01()
+    retVal.field1.CopyFrom(messagingEncoderTests.testDtMsg01Creator())
+    return retVal
+
+  @staticmethod
+  def testNestedMsg02Creator():
+    retVal=TestMsg.testNestedMsg02()
+    retVal.field1.CopyFrom(messagingEncoderTests.testNestedMsg01Creator())
+    return retVal
+
+  @staticmethod
   def msgFactory(msg):
     #--use the incoming message to call the appropriate
     #-- message field population
@@ -139,14 +152,51 @@ class messagingEncoderTests(unittest.TestCase):
                         TestMsg.testDtMsg09(), TestMsg.testDtMsg10(), 
                         TestMsg.testDtMsg11(), TestMsg.testDtMsg12(), 
                         TestMsg.testDtMsg13(), TestMsg.testDtMsg14(), 
-                        TestMsg.testDtMsg15()]:
+                        TestMsg.testDtMsg15(), TestMsg.testNestedMsg01()]:
       for i in range(0,1000):
         msg=self.msgFactory(msgTemplate)
         envMsg=encoder.encode(msg)
         msg2=decoder.decode(envMsg)
         self.assertTrue(msg==msg2)
+
+  def test01(self):
+    encoder=dividere.messaging.ProtoBuffEncoder()
+    decoder=dividere.messaging.ProtoBuffDecoder()
+    for msgTemplate in [TestMsg.testNestedMsg01(), TestMsg.testNestedMsg02()]:
+      msg=self.msgFactory(msgTemplate)
+      envMsg=encoder.encode(msg)
+      msg2=decoder.decode(envMsg)
+      self.assertTrue(msg==msg2)
+
   
 class messagingTests(unittest.TestCase):
   def test00(self):
     self.assertTrue(True)
+    Port=5555
+    pub=dividere.messaging.Publisher('tcp://*:%d'%(Port))
+    sub=dividere.messaging.Subscriber('tcp://localhost:%d'%(Port))
+    time.sleep(1); #--sleep for late joiner
+    msg=messagingEncoderTests.msgFactory(TestMsg.testDtMsg01())
+    pub.send(msg)
+    received=sub.recv()
+    self.assertTrue(msg==received)
 
+  def test01(self):
+    Port=5555
+    pub=dividere.messaging.Publisher('tcp://*:%d'%(Port))
+    sub=dividere.messaging.Subscriber('tcp://localhost:%d'%(Port))
+    time.sleep(1)
+
+    for msgTemplate in [TestMsg.testDtMsg01(), TestMsg.testDtMsg02(), 
+                        TestMsg.testDtMsg03(), TestMsg.testDtMsg04(), 
+                        TestMsg.testDtMsg05(), TestMsg.testDtMsg06(), 
+                        TestMsg.testDtMsg07(), TestMsg.testDtMsg08(), 
+                        TestMsg.testDtMsg09(), TestMsg.testDtMsg10(), 
+                        TestMsg.testDtMsg11(), TestMsg.testDtMsg12(), 
+                        TestMsg.testDtMsg13(), TestMsg.testDtMsg14(), 
+                        TestMsg.testDtMsg15(), TestMsg.testNestedMsg01(), 
+                        TestMsg.testNestedMsg02()]:
+      msg=messagingEncoderTests.msgFactory(msgTemplate)
+      pub.send(msg)
+      received=sub.recv()
+      self.assertTrue(msg==received)
