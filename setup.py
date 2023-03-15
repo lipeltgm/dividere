@@ -7,7 +7,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 with codecs.open(os.path.join(here, "README.md"), encoding="utf-8") as fh:
     long_description = "\n" + fh.read()
 
-VERSION = '0.0.1'
+VERSION = '0.0.5'
 DESCRIPTION = 'Distributed Systems Framework'
 LONG_DESCRIPTION = 'This package provides a ZeroMq (zmq, 0mq) based distributed systems framework.'
 
@@ -21,7 +21,7 @@ setup(
     long_description_content_type="text/markdown",
     long_description=LONG_DESCRIPTION,
     packages=find_packages(),
-    install_requires=['zmq', 'libprotobuf', 'logging'],
+    install_requires=['zmq'],
     keywords=['python', 'ZeroMq', 'zmq', '0mq', 'protobuf'],
     classifiers=[
         "Development Status :: 1 - Planning",
@@ -29,6 +29,6 @@ setup(
         "Programming Language :: Python :: 3",
         "Operating System :: Unix",
         "Operating System :: MacOS :: MacOS X",
-        "Operating System :: Microsoft :: Windows",
+        "Operating System :: Microsoft :: Windows"
     ]
 )

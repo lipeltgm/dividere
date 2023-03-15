@@ -6,20 +6,22 @@ setup: setup-$(shell uname -v | cut -f 2- -d '~' | cut -f 1 -d '-')
 setup-18.04.1:
 	${SH} sudo apt-get install -y libzmq3-dev
 	${SH} sudo apt-get install -y python3-pip
-	${SH} sudo pip3 install zmq
-	${SH} sudo apt-get install libprotobuf-dev
+	${SH} sudo pip3 install -y zmq
+	${SH} sudo apt-get install -y libprotobuf-dev
+	${SH} sudo pip3 install -y twine
 
 
 setup-22.04.1:
 	${SH} sudo apt-get install -y libzmq3-dev
 	${SH} sudo apt-get install -y python3-pip
 	${SH} sudo apt-get install -y protobuf-compiler
-	${SH} sudo pip3 install zmq
+	${SH} sudo pip3 install -y zmq
+	${SH} sudo pip3 install -y twine
 
 buildPackage:
 	${SH} python3 setup.py sdist bdist_wheel
 
-uploadPackage:
+uploadPackage: buildPackage
 	${SH} twine upload dist/*
 
 msg:
