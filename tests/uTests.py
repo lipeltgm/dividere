@@ -9,6 +9,7 @@ import dividere
 
 from connectionTests import *
 from messagingTests import *
+from docTests import *
 
 #-----main-----
 if __name__ == '__main__':

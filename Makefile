@@ -1,9 +1,9 @@
-all: 
+all: msg test
 
 #--os version specific setup instructions
-setup: setup-$(shell uname -v | cut -f 2- -d '~' | cut -f 1 -d '-')
+devSetup: devSetup-$(shell uname -v | cut -f 2- -d '~' | cut -f 1 -d '-')
 
-setup-18.04.1:
+devSetup-18.04.1:
 	${SH} sudo apt-get install -y libzmq3-dev
 	${SH} sudo apt-get install -y python3-pip
 	${SH} sudo pip3 install -y zmq
@@ -11,17 +11,17 @@ setup-18.04.1:
 	${SH} sudo pip3 install -y twine
 
 
-setup-22.04.1:
+devSetup-22.04.1:
 	${SH} sudo apt-get install -y libzmq3-dev
 	${SH} sudo apt-get install -y python3-pip
 	${SH} sudo apt-get install -y protobuf-compiler
 	${SH} sudo pip3 install -y zmq
 	${SH} sudo pip3 install -y twine
 
-buildPackage:
+buildPipPackage:
 	${SH} python3 setup.py sdist bdist_wheel
 
-uploadPackage: buildPackage
+uploadPackage: buildPipPackage
 	${SH} twine upload dist/*
 
 msg:
@@ -29,8 +29,6 @@ msg:
 
 test: msg
 	${SH} cd ./tests; protoc --proto_path=./ --python_out=. TestMsg.proto
-#	${SH} cd ./tests; ./uTests.py messagingEncoderTests messagingTests --verbose
-#	${SH} cd ./tests; ./uTests.py messagingTests 
 	${SH} cd ./tests; ./uTests.py --verbose
 
 
