@@ -6,6 +6,7 @@ import dividere
 import time
 import os
 import random
+import threading
 
 class connectionTests(unittest.TestCase):
   def _singleThreadPubSubTest(self, pubEndpt, subEndpt):
@@ -79,3 +80,69 @@ class connectionTests(unittest.TestCase):
     endPt='ipc://%s/0'%(ipcTmpDir)
     self._singleThreadPubSubVaryMsgLenTest(endPt,endPt)
 
+  def _singleThreadReqRepTest(self, reqEndpt, repEndpt):
+    req=dividere.connection.Request([reqEndpt])
+    rep=dividere.connection.Response(repEndpt)
+    time.sleep(1); #--let subscribers get set up before sending initial msg
+
+    N=10
+    for i in range(0,N):
+      msg=b"message-%03d"%(i)
+      req.send(msg)
+      received=rep.recv()
+      logging.debug("%s == %s"%(msg,received))
+      self.assertTrue(msg==received)
+
+      rep.send(msg)
+      received=req.recv()
+      self.assertTrue(msg==received)
+
+  def test05(self):   
+    Port=5555
+    reqEndPt='tcp://localhost:%d'%(Port)
+    repEndPt='tcp://*:%d'%(Port)
+    self._singleThreadReqRepTest(reqEndPt, repEndPt)
+
+  @staticmethod
+  def _responseTestThread(endPoint):
+    rep=dividere.connection.Response(endPoint)
+    msg=rep.recv()
+    rep.send(msg)
+    rep=None
+
+  def _testReqRepCardinality(self, N):
+    Port=5555
+    reqEndPt='tcp://localhost:%d'%(Port)
+    repEndPt='tcp://*:%d'%(Port)
+    
+    tidList=[]
+    req=dividere.connection.Request([reqEndPt])
+    for i in range(0,N):
+      tidList.append(threading.Thread(target=connectionTests._responseTestThread, args=(repEndPt,)))
+
+    for tid in tidList:
+      tid.start()
+
+    for i in range(0,N):
+      msg=b'abcd'
+      req.send(msg)
+      reply=req.recv()
+      self.assertTrue(reply==msg)
+
+    for tid in tidList:
+      tid.join()
+
+    req=None
+
+  def test06(self):
+    #--test a 1-1 req/rep pairing, send a message, bounce it back, confirm what you sent is what
+    #-- you received
+    N=1
+    self._testReqRepCardinality(N)
+    time.sleep(2)
+
+# def test07(self):
+#   #--test a 1-N req/rep pairing, send a message, bounce it back, confirm what you sent is what
+#   #-- you received
+#   N=2
+#   self._testReqRepCardinality(N)

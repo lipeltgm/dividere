@@ -73,6 +73,9 @@ class Connector:
     self.socket_.close()
     self.ctx_.term()
 
+#================================================================================
+#  Pub/Sub Connection Pair
+#================================================================================
 class Publisher(Connector):
   '''
      This class creates a publisher socket at the specified endpoint.
@@ -136,6 +139,75 @@ class Subscriber(Connector):
     S=self.socket_.recv()
     return S
 
+#================================================================================
+#  Request/Response Connection Pair
+#================================================================================
+class Request(Connector):
+  '''
+    First part of a Request/Response connection pair.  Request object
+    initiates all messages, response object sends message response.
+    Failure to adhere to this sender protocol will result in exception
+    being thrown.
+    Note: this pairing allows for 1-N cardinality, one request connection
+          object sending to N-response objects.  When configured like this
+          the recipient of any message is routed in a round-robin fashion
+          to one response object
+  '''
+  def __init__(self, endPointList):
+    '''
+      Allocate all resources to support the object;         
+      create a socket, register it for monitoring, and connect
+      it to the specified endpoint
+    '''
+    super(self.__class__,self).__init__()
+    self.socket_=self.ctx_.socket(zmq.REQ)
+    self.tid_=self.registerSocketMonitoring(self.socket_)
+    for endPt in endPointList:
+      self.socket_.connect(endPt)
 
+  def send(self, msg):
+    '''
+      Send the specified message out the socket channel.  
+      Message consists of a stream of bytes.
+    '''
+    S=self.socket_.send(msg)
 
+  def recv(self):
+    '''
+      Wait for and return the incoming message.
+    '''
+    S=self.socket_.recv()
+    return S
+
+class Response(Connector):
+  '''
+    First part of a Request/Response connection pair.  Request object
+    initiates all messages, response object sends message response.
+    Failure to adhere to this sender protocol will result in exception
+    being thrown.
+  '''
+  def __init__(self, endPoint):
+    '''
+      Allocate all resources to support the object;         
+      create a socket, register it for monitoring, and connect
+      it to the specified endpoint
+    '''
+    super(self.__class__,self).__init__()
+    self.socket_=self.ctx_.socket(zmq.REP)
+    self.tid_=self.registerSocketMonitoring(self.socket_)
+    self.socket_.bind(endPoint)
+
+  def send(self, msg):
+    '''
+      Send the specified message out the socket channel
+      Message consists of a stream of bytes.
+    '''
+    S=self.socket_.send(msg)
+
+  def recv(self):
+    '''
+      Wait for and return the incoming message.
+    '''
+    S=self.socket_.recv()
+    return S
 
