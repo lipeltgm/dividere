@@ -202,3 +202,75 @@ class messagingTests(unittest.TestCase):
       pub.send(msg)
       received=sub.recv()
       self.assertTrue(msg==received)
+
+  def test02(self):
+    #--simple single-threaded test, send a message, confirm it's received
+    #-- as transmitted
+    logging.info("executing test")
+    Port=5555
+    req=dividere.messaging.Request(['tcp://localhost:%d'%(Port)])
+    rep=dividere.messaging.Response('tcp://*:%d'%(Port))
+
+    msg=messagingEncoderTests.msgFactory(TestMsg.testDtMsg01())
+    req.send(msg)
+    m2=rep.recv()
+    self.assertTrue(msg==m2)
+    rep.send(m2)
+    m3=req.recv()
+    self.assertTrue(msg==m3)
+
+    req=None
+    rep=None
+
+  def test03(self):
+    #--test a simple req/rep single-threaded exchange over a variety
+    #-- of messages
+    logging.info("executing test")
+    Port=5555
+    req=dividere.messaging.Request(['tcp://localhost:%d'%(Port)])
+    rep=dividere.messaging.Response('tcp://*:%d'%(Port))
+    time.sleep(1)
+
+    for msgTemplate in [TestMsg.testDtMsg01(), TestMsg.testDtMsg02(), 
+                        TestMsg.testDtMsg03(), TestMsg.testDtMsg04(), 
+                        TestMsg.testDtMsg05(), TestMsg.testDtMsg06(), 
+                        TestMsg.testDtMsg07(), TestMsg.testDtMsg08(), 
+                        TestMsg.testDtMsg09(), TestMsg.testDtMsg10(), 
+                        TestMsg.testDtMsg11(), TestMsg.testDtMsg12(), 
+                        TestMsg.testDtMsg13(), TestMsg.testDtMsg14(), 
+                        TestMsg.testDtMsg15(), TestMsg.testNestedMsg01(), 
+                        TestMsg.testNestedMsg02()]:
+      for i in range(0,50):
+        msg=messagingEncoderTests.msgFactory(msgTemplate)
+        req.send(msg)
+        m2=rep.recv()
+        self.assertTrue(msg==m2)
+        rep.send(m2)
+        m3=req.recv()
+        self.assertTrue(msg==m3)
+
+  def test04(self):
+    #--test the round-robin point-to-point delivery when specifying a
+    #-- series of receivers
+    logging.info("executing test")
+    Port=5555
+    N=3
+
+    portList=[i for i in range(Port, Port+N)]
+    repList=[dividere.messaging.Response('tcp://*:%d'%(p)) for p in portList]
+
+    endPoints=['tcp://localhost:%d'%(p) for p in portList]
+    req=dividere.messaging.Request(endPoints)
+
+    msg=messagingEncoderTests.msgFactory(TestMsg.testDtMsg01())
+    for rep in repList:
+      req.send(msg)
+      m2=rep.recv()
+      self.assertTrue(msg==m2)
+      rep.send(m2)
+      m3=req.recv()
+      self.assertTrue(msg==m3)
+
+    for e in repList:
+      e=None
+    req=None
