@@ -163,6 +163,7 @@ class Request(Connector):
     self.socket_=self.ctx_.socket(zmq.REQ)
     self.tid_=self.registerSocketMonitoring(self.socket_)
     for endPt in endPointList:
+      logging.debug("binding to %s"%(endPt))
       self.socket_.connect(endPt)
 
   def send(self, msg):
@@ -195,6 +196,7 @@ class Response(Connector):
     super(self.__class__,self).__init__()
     self.socket_=self.ctx_.socket(zmq.REP)
     self.tid_=self.registerSocketMonitoring(self.socket_)
+    logging.debug("binding to %s"%(endPoint))
     self.socket_.bind(endPoint)
 
   def send(self, msg):

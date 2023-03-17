@@ -160,6 +160,7 @@ class messagingEncoderTests(unittest.TestCase):
         self.assertTrue(msg==msg2)
 
   def test01(self):
+    logging.info("executing test")
     encoder=dividere.messaging.ProtoBuffEncoder()
     decoder=dividere.messaging.ProtoBuffDecoder()
     for msgTemplate in [TestMsg.testNestedMsg01(), TestMsg.testNestedMsg02()]:
@@ -171,7 +172,7 @@ class messagingEncoderTests(unittest.TestCase):
   
 class messagingTests(unittest.TestCase):
   def test00(self):
-    self.assertTrue(True)
+    logging.info("executing test")
     Port=5555
     pub=dividere.messaging.Publisher('tcp://*:%d'%(Port))
     sub=dividere.messaging.Subscriber('tcp://localhost:%d'%(Port))
@@ -182,6 +183,7 @@ class messagingTests(unittest.TestCase):
     self.assertTrue(msg==received)
 
   def test01(self):
+    logging.info("executing test")
     Port=5555
     pub=dividere.messaging.Publisher('tcp://*:%d'%(Port))
     sub=dividere.messaging.Subscriber('tcp://localhost:%d'%(Port))

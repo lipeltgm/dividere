@@ -9,6 +9,7 @@ class docTests(unittest.TestCase):
 
   def test00(self):
     #--confirm each class in the module list has documentation
+    logging.info("executing test")
     for m in docTests.ModuleList:
       logging.debug("reviewing %s module"%(m.__name__))
       for className,classObj in [(name, obj) for name,obj in inspect.getmembers(m) if inspect.isclass(obj)]:
@@ -16,6 +17,8 @@ class docTests(unittest.TestCase):
         self.assertTrue(classObj.__doc__, "failed to find doc string for %s"%(className))
 
   def test01(self):
+    #--confirm each class method in the module list has documentation
+    logging.info("executing test")
     for m in docTests.ModuleList:
       logging.debug("reviewing %s module"%(m.__name__))
       for className,classObj in [(name, obj) for name,obj in inspect.getmembers(m) if inspect.isclass(obj)]:

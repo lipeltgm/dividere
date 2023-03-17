@@ -29,7 +29,8 @@ msg:
 
 test: msg
 	${SH} cd ./tests; protoc --proto_path=./ --python_out=. TestMsg.proto
-#	${SH} cd ./tests; ./uTests.py --verbose
+        #--run tests w/ and w/o debug logging
+	${SH} cd ./tests; ./uTests.py --verbose
 	${SH} cd ./tests; ./uTests.py 
 
 

@@ -98,6 +98,7 @@ class connectionTests(unittest.TestCase):
       self.assertTrue(msg==received)
 
   def test05(self):   
+    logging.info("executing test")
     Port=5555
     reqEndPt='tcp://localhost:%d'%(Port)
     repEndPt='tcp://*:%d'%(Port)
@@ -105,6 +106,7 @@ class connectionTests(unittest.TestCase):
 
   @staticmethod
   def _responseTestThread(endPoint):
+    logging.debug("reply thread connecting to: %s"%(endPoint))
     rep=dividere.connection.Response(endPoint)
     msg=rep.recv()
     rep.send(msg)
@@ -112,37 +114,46 @@ class connectionTests(unittest.TestCase):
 
   def _testReqRepCardinality(self, N):
     Port=5555
-    reqEndPt='tcp://localhost:%d'%(Port)
-    repEndPt='tcp://*:%d'%(Port)
-    
+    portList=[i for i in range(Port,Port+N)]
     tidList=[]
-    req=dividere.connection.Request([reqEndPt])
-    for i in range(0,N):
+    for port in portList:
+      repEndPt='tcp://*:%d'%(port)
       tidList.append(threading.Thread(target=connectionTests._responseTestThread, args=(repEndPt,)))
-
     for tid in tidList:
       tid.start()
+
+    endPointList=[]
+    for port in portList:
+      endPointList.append('tcp://localhost:%d'%(port))
+    logging.debug("req thread connecting to: %s"%(str(endPointList)))
+    req=dividere.connection.Request(endPointList)
 
     for i in range(0,N):
       msg=b'abcd'
       req.send(msg)
       reply=req.recv()
       self.assertTrue(reply==msg)
-
-    for tid in tidList:
-      tid.join()
+      time.sleep(1);
 
     req=None
-
+  
   def test06(self):
     #--test a 1-1 req/rep pairing, send a message, bounce it back, confirm what you sent is what
     #-- you received
+    logging.info("executing test")
     N=1
     self._testReqRepCardinality(N)
-    time.sleep(2)
 
-# def test07(self):
-#   #--test a 1-N req/rep pairing, send a message, bounce it back, confirm what you sent is what
-#   #-- you received
-#   N=2
-#   self._testReqRepCardinality(N)
+  def test07(self):
+    #--test a simple 1-N req/rep pairing, send a message, bounce it back, confirm what you sent 
+    #-- is what you received
+    logging.info("executing test")
+    N=2
+    self._testReqRepCardinality(N)
+
+  def test08(self):
+    #--test a 1-N req/rep pairing, send a message, bounce it back, confirm what you sent is what
+    #-- you received
+    logging.info("executing test")
+    for i in range(1,10):
+      self._testReqRepCardinality(i)
