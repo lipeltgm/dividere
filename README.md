@@ -1,5 +1,5 @@
 # dividere
 Distributed Systems Framework
 
-<a href="https://www.google.com/" target="_blank">Google</a>
+<a href="https://github.com/lipeltgm/dividere/blob/main/main.pdf" target="_blank">User Guide</a>
 
