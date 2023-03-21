@@ -1,0 +1,69 @@
+\documentclass[fontsize=12pt]{book}
+\usepackage{tcolorbox}
+\usepackage{listings}
+\usepackage[usestackEOL]{stackengine}
+
+\begin{document}
+\chapter{What is dīvidere?}
+
+Dīvidere, latin for "to divide, to seperate" seemed an appropriate package name for a distributed system framework project.  
+\\
+\\
+The primary goal of dīvidere is to combine three complementary technologies (Python, ZeroMQ, Protobuf) into a distributed system messaging framework.  ZeroMQ will provide a variety of transport mechanisms, Protobuf providing a language-independent, strongly-typed message encoding and Python the means to combine these components into a reusable framework.
+
+\chapter{ZeroMq}
+ZeroMq provides the core transport mechanisms used by this framework.  We'd highhly recommend referencing the official ZeroMq documentation \footnote{Offical ZeroMQ documentation: https://zeromq.org/} for more comprehensive material, but for the purposes of this package we will attempt to document sufficient information necessary to use this package.
+\\
+The communication package provides primitive ZeroMq classes which support byte-stream messaging as the foundation of other more sophisticated packages.
+
+\section{Publish/Subscribe}
+The publish-subscribe, pub-sub, sometimes referred to as the observer pattern is a software design pattern where producers of messages provide info without knowledge of the recepients.  An analogy would be a radio broadcasting station, sending information to an unknown number of recepients.  The messaging is one-way, from provider (publisher) to consumer (subscriber).  A publisher can choose to produce one specific message, or a series of messages.  The subscriber 'subscribes' to a list of messages, afterwhich all produced messages of this 'topic' will be received by the subscriber.
+\\
+\section{Request/Response}
+The request-response, or request-reply, provides a sychronous form of message passing.  The requester sends a message, then waits for the response.  This form of communication enforces a send/receive protocol, failure to comply results in the socket throwing an exception.  You may choose to connect multiple response objects to the same requester, if doing so sent messages will be routed one-by-one to each response objects in a round-robin fashion.  This pattern allows a worker pool fashion architecture.
+
+\chapter{Protobuf}
+The ZeroMQ transport supports byte-stream and string payloads.  Complex messages \underline{could} be transmitted in JSON form using the communication package but instead we chose to utilize the protobuf encoding/decoding to allow type-safe, language specific messaging contents.  Google Protobuf \footnote{https://protobuf.dev/} supports a platform-neutral extensible means to define serialing structured data.  Messages are defined in a *.proto file, a message compiler converts the proto file into a language-specific (e.g. Python) message library used by the clients.
+\\
+\chapter{Architecture}
+
+Dividere is implemented as a layered architeture, the primary communication layer provided at the \emph{Communications} package, the \emph{Messaging} package providing aggregator classes utilizing the communications classes exchanging Protobuf messages.  
+\\
+These two layers are expected to expand in the future, we also intend on adding higher-level layer(s) with higher-level distributed system abstractions.
+\\
+
+  {\fboxrule=.75pt%
+   \fbox{\stackunder{\Large{Dividere Architecture}}
+   {
+    \stackunder{
+      \framebox[6in]{\stackunder{ \large{Messaging} }{
+          \fbox{\stackunder{ Publisher }{}}  
+          \fbox{\stackunder{ Subscriber }{}}  
+          \fbox{\stackunder{ Request }{}}  
+          \fbox{\stackunder{ Response }{}}  
+          }}  
+    }
+    {
+      \framebox[6in]{\stackunder{ \large{Communications} }{
+          \fbox{\stackunder{ Publisher }{}}  
+          \fbox{\stackunder{ Subscriber }{}}  
+          \fbox{\stackunder{ Request }{}}  
+          \fbox{\stackunder{ Response }{}}  
+          }}  
+    }
+   }
+  }
+ }
+
+\chapter{Examples}
+\begin{tcolorbox}[title=Python,coltitle=lightgray,width=6in]
+\begin{lstlisting}[caption=Joke.py]
+print("Give a person a program, frustrate them for a day.")
+print("Teach a person to program, frustrate them for a lifetime.")
+\end{lstlisting}
+\end{tcolorbox}
+
+
+
+
+\end{document}

@@ -9,7 +9,7 @@ with codecs.open(os.path.join(here, "README.md"), encoding="utf-8") as fh:
 
 VERSION = '1.0.0'
 DESCRIPTION = 'Distributed Systems Framework'
-LONG_DESCRIPTION = 'This package provides a ZeroMq (zmq, 0mq) based distributed systems framework.'
+LONG_DESCRIPTION = 'Dīvidere, latin for "to divide, to seperate" seemed an appropriate package name for a distributed system framework project. \n\nThe primary goal of dīvidere is to combine three complementary technologies (Python, ZeroMQ, Protobuf) into a distributed system messaging framework.  ZeroMQ will provide a variety of transport mechanisms, Protobuf providing a language-independent, strongly-typed message encoding and Python the means to combine these components into a reusable framework.'
 
 # Setting up
 setup(

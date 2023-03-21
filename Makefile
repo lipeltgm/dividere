@@ -1,4 +1,4 @@
-all: msg test
+all: docs msg test 
 
 #--os version specific setup instructions
 devSetup: devSetup-$(shell uname -v | cut -f 2- -d '~' | cut -f 1 -d '-')
@@ -18,6 +18,9 @@ devSetup-22.04.1:
 	${SH} sudo pip3 install -y zmq
 	${SH} sudo pip3 install -y twine
 
+docs:
+	${SH} cd doc; make
+
 buildPipPackage:
 	${SH} python3 setup.py sdist bdist_wheel
 
@@ -29,10 +32,9 @@ msg:
 
 test: msg
 	${SH} cd ./tests; protoc --proto_path=./ --python_out=. TestMsg.proto
-#        #--run tests w/ and w/o debug logging
-#	${SH} cd ./tests; ./uTests.py --verbose
-#	${SH} cd ./tests; ./uTests.py 
-	${SH} cd ./tests; ./uTests.py messagingTests.test02 messagingTests.test03 messagingTests.test04 
+        #--run tests w/ and w/o debug logging
+	${SH} cd ./tests; ./uTests.py --verbose
+	${SH} cd ./tests; ./uTests.py 
 
 
 clean:
@@ -41,5 +43,6 @@ clean:
 	${RM} -rf ./tests/__pycache__/
 	${RM} -rf ./tests/TestMsg*py
 	${RM} -rf ./dividere/MsgLib*py
+	${SH} cd doc; make clean
 
 
