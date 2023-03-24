@@ -3,6 +3,12 @@
 \usepackage{listings}
 \usepackage[usestackEOL]{stackengine}
 
+\newcommand{\insertPython}[1]{ 
+\begin{tcolorbox}[title=#1,coltitle=lightgray,width=6in]
+\lstinputlisting[language=Python]{../examples/#1}
+\end{tcolorbox}
+}
+
 \begin{document}
 \chapter{What is dīvidere?}
 
@@ -56,14 +62,6 @@ These two layers are expected to expand in the future, we also intend on adding 
  }
 
 \chapter{Examples}
-\begin{tcolorbox}[title=Python,coltitle=lightgray,width=6in]
-\begin{lstlisting}[caption=Joke.py]
-print("Give a person a program, frustrate them for a day.")
-print("Teach a person to program, frustrate them for a lifetime.")
-\end{lstlisting}
-\end{tcolorbox}
-
-
-
+\insertPython{simplePubSub.py}
 
 \end{document}

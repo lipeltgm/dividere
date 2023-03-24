@@ -21,7 +21,7 @@ devSetup-22.04.1:
 docs:
 	${SH} cd doc; make
 
-buildPipPackage:
+buildPipPackage: msg
 	${SH} python3 setup.py sdist bdist_wheel
 
 uploadPackage: buildPipPackage

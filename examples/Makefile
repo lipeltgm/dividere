@@ -3,7 +3,7 @@ all:
 setup:
 	${SH} sudo apt-get install -y protobuf-compiler
 
-foo.proto:
+clientMsgs.proto:
 	${SH} echo "syntax='proto3';" > $@
 	${SH} echo 'message msg01 {' >> $@
 	${SH} echo '  string field1=1;' >> $@
@@ -13,8 +13,9 @@ foo.proto:
 	${SH} protoc --proto_path=./ --python_out=./ $<
 
 
-run: foo_pb2.py
+run: clientMsgs_pb2.py
+	${SH} ./simplePubSub.py
 
 clean:
-	${RM} foo*
+	${RM} clientMsgs*
 
