@@ -7,16 +7,18 @@ devSetup-18.04.1:
 	${SH} sudo apt-get install -y libzmq3-dev
 	${SH} sudo apt-get install -y python3-pip
 	${SH} sudo pip3 install -y zmq
-	${SH} sudo apt-get install -y libprotobuf-dev
+#	${SH} sudo apt-get install -y libprotobuf-dev
 	${SH} sudo pip3 install -y twine
 
 
 devSetup-22.04.1:
 	${SH} sudo apt-get install -y libzmq3-dev
 	${SH} sudo apt-get install -y python3-pip
-	${SH} sudo apt-get install -y protobuf-compiler
-	${SH} sudo pip3 install -y zmq
-	${SH} sudo pip3 install -y twine
+#	${SH} sudo apt-get install -y protobuf-compiler
+	${SH} sudo pip3 install zmq
+	${SH} sudo pip3 install twine
+	${SH} sudo apt install -y texlive-latex-base
+	${SH} sudo apt install -y texlive-full
 
 docs:
 	${SH} cd doc; make
@@ -36,6 +38,17 @@ test: msg
 	${SH} cd ./tests; ./uTests.py --verbose
 	${SH} cd ./tests; ./uTests.py 
 
+db: msg
+	${SH} cd ./tests; protoc --proto_path=./ --python_out=. DbMsg.proto
+	${SH} cd ./tests; ./uTests.py dbProtoTests
+
+
+protobuf:
+	${SH} mkdir temp/
+	${SH} wget -O temp/v3.19.4.tar.gz https://github.com/protocolbuffers/protobuf/archive/refs/tags/v3.19.4.tar.gz
+	${SH} cd temp; tar -zxvf v3.19.4.tar.gz
+	${SH} cd temp/protobuf-3.19.4; ./autogen.sh; ./configure; make; 
+	${SH} cd temp/protobuf-3.19.4; sudo make install; sudo ldconfig
 
 clean:
 	${RM} -rf build dist *.egg-info
@@ -44,5 +57,6 @@ clean:
 	${RM} -rf ./tests/TestMsg*py
 	${RM} -rf ./dividere/MsgLib*py
 	${SH} cd doc; make clean
+	${RM} -rf ./temp/
 
 
