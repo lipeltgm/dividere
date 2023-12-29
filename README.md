@@ -8,3 +8,6 @@ The primary goal of dīvidere is to combine three complementary technologies (Py
 Refer to the user guide:
 <a href="https://github.com/lipeltgm/dividere/blob/main/main.pdf" target="_blank">User Guide</a>
 
+<a href="https://github.com/lipeltgm/dividere" target="_blank">GitHub Repo</a>
+<a href="https://pypi.org/project/dividere/" target="_blank">PyPi</a>
+
