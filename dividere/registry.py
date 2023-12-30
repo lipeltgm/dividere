@@ -35,9 +35,10 @@ class ServiceRegistry:
 
     def stop(self):
       '''
-        Signal the thread to stop.
+        Signal and wait for the thread to terminate
       '''
       self.done_=True
+      self.tid_.join()
 
     def run(self):
       '''

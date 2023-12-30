@@ -73,3 +73,9 @@ message testNestedMsg01 {
 message testNestedMsg02 {
   testNestedMsg01 field1=1;
 }
+
+message MyClassReq {
+}
+
+message MyClassRep {
+}

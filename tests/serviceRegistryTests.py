@@ -36,6 +36,7 @@ class serviceRegistryTests(unittest.TestCase):
     m=client.lookupService(serviceName)
     print("m:",m)
     serviceRegistry.stop()
+    time.sleep(3); #--give serviceRegistry a chance to cleanup for future tests
 
 # def test01(self):
 #   m=MsgLib.unregisterService()

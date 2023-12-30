@@ -11,6 +11,7 @@ from connectionTests import *
 from messagingTests import *
 from docTests import *
 from serviceRegistryTests import *
+from serviceTests import *
 
 #-----main-----
 if __name__ == '__main__':

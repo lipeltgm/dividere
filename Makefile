@@ -37,6 +37,7 @@ test: msg
 	${SH} cd ./tests; ./uTests.py 
 #	${SH} cd ./tests; ./uTests.py --verbose serviceRegistryTests
 #	${SH} cd ./tests; ./uTests.py serviceRegistryTests
+#	${SH} cd ./tests; ./uTests.py serviceTests
 
 #db: msg
 #	${SH} cd ./tests; protoc --proto_path=./ --python_out=. DbMsg.proto
