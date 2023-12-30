@@ -5,7 +5,7 @@ import inspect
 import logging
 
 class docTests(unittest.TestCase):
-  ModuleList=[dividere.connection, dividere.messaging]
+  ModuleList=[dividere.connection, dividere.messaging, dividere.registry]
 
   def test00(self):
     #--confirm each class in the module list has documentation

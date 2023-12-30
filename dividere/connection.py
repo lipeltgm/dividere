@@ -123,6 +123,8 @@ class Subscriber(Connector):
     self.tid_=self.registerSocketMonitoring(self.socket_)
     self.socket_.connect(endPoint)
     self.subscribe(topic)
+    self.poller_=zmq.Poller()
+    self.poller_.register(self.socket_,zmq.POLLIN)
 
   def subscribe(self, topic):
     '''
@@ -138,6 +140,15 @@ class Subscriber(Connector):
     '''
     S=self.socket_.recv()
     return S
+
+  def wait(self, timeOutMs):
+    '''
+      Wait for a message to arrive within the specified timeout, return
+      true/false representing whether a message is available
+    '''
+    ev=self.poller_.poll(timeOutMs)
+    gotMsg=self.socket_ in dict(ev)
+    return gotMsg
 
 #================================================================================
 #  Request/Response Connection Pair
@@ -165,6 +176,8 @@ class Request(Connector):
     for endPt in endPointList:
       logging.debug("binding to %s"%(endPt))
       self.socket_.connect(endPt)
+    self.poller_=zmq.Poller()
+    self.poller_.register(self.socket_,zmq.POLLIN)
 
   def send(self, msg):
     '''
@@ -180,9 +193,18 @@ class Request(Connector):
     S=self.socket_.recv()
     return S
 
+  def wait(self, timeOutMs):
+    '''
+      Wait for a message to arrive within the specified timeout, return
+      true/false representing whether a message is available
+    '''
+    ev=self.poller_.poll(timeOutMs)
+    gotMsg=self.socket_ in dict(ev)
+    return gotMsg
+
 class Response(Connector):
   '''
-    First part of a Request/Response connection pair.  Request object
+    Second part of a Request/Response connection pair.  Request object
     initiates all messages, response object sends message response.
     Failure to adhere to this sender protocol will result in exception
     being thrown.
@@ -198,6 +220,8 @@ class Response(Connector):
     self.tid_=self.registerSocketMonitoring(self.socket_)
     logging.debug("binding to %s"%(endPoint))
     self.socket_.bind(endPoint)
+    self.poller_=zmq.Poller()
+    self.poller_.register(self.socket_,zmq.POLLIN)
 
   def send(self, msg):
     '''
@@ -213,3 +237,11 @@ class Response(Connector):
     S=self.socket_.recv()
     return S
 
+  def wait(self, timeOutMs):
+    '''
+      Wait for a message to arrive within the specified timeout, return
+      true/false representing whether a message is available
+    '''
+    ev=self.poller_.poll(timeOutMs)
+    gotMsg=self.socket_ in dict(ev)
+    return gotMsg

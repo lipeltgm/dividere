@@ -6,3 +6,29 @@ message msgEnvelope {
   google.protobuf.Any msg = 2;
 }
 
+message RegisterService {
+  string serviceName=1;
+  string server=2;
+  uint32 port=3;
+}
+
+message UnregisterService {
+  string serviceName=1;
+  string server=2;
+  uint32 port=3;
+}
+
+message ack {
+  bool ok=1;
+}
+
+message ServiceLookupReq {
+  string serviceName=1;
+}
+
+message ServiceLookupRep {
+  string serviceName=1;
+  string server=2;
+  uint32 port=3;
+}
+

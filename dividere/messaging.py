@@ -139,6 +139,13 @@ class Subscriber:
     env.ParseFromString(S)
     return self.decoder_.decode(env)
 
+  def wait(self, timeOutMs):
+    '''
+      Wait for a message to arrive within the specified timeout, return
+      true/false representing whether a message is available
+    '''
+    return self.sub_.wait(timeOutMs)
+
 class Request:
   '''
     Similar functionality to the Request/Response pairing in the connection
@@ -179,6 +186,13 @@ class Request:
     env.ParseFromString(S)
     return self.decoder_.decode(env)
 
+  def wait(self, timeOutMs):
+    '''
+      Wait for a message to arrive within the specified timeout, return
+      true/false representing whether a message is available
+    '''
+    return self.sock_.wait(timeOutMs)
+
 class Response:
   '''
     Similar functionality to the Request/Response pairing in the connection
@@ -213,6 +227,13 @@ class Response:
     env=MsgLib.msgEnvelope()
     env.ParseFromString(S)
     return self.decoder_.decode(env)
+
+  def wait(self, timeOutMs):
+    '''
+      Wait for a message to arrive within the specified timeout, return
+      true/false representing whether a message is available
+    '''
+    return self.sock_.wait(timeOutMs)
 
   def send(self, msg):
     '''
