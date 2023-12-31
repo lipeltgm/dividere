@@ -38,27 +38,30 @@ Dividere is implemented as a layered architeture, the primary communication laye
 These two layers are expected to expand in the future, we also intend on adding higher-level layer(s) with higher-level distributed system abstractions.
 \\
 
-  {\fboxrule=.75pt%
-   \fbox{\stackunder{\Large{Dividere Architecture}}
-   {
-    \stackunder{
-      \framebox[6in]{\stackunder{ \large{Messaging} }{
-          \fbox{\stackunder{ Publisher }{}}  
-          \fbox{\stackunder{ Subscriber }{}}  
-          \fbox{\stackunder{ Request }{}}  
-          \fbox{\stackunder{ Response }{}}  
-          }}  
-    }
-    {
-      \framebox[6in]{\stackunder{ \large{Communications} }{
-          \fbox{\stackunder{ Publisher }{}}  
-          \fbox{\stackunder{ Subscriber }{}}  
-          \fbox{\stackunder{ Request }{}}  
-          \fbox{\stackunder{ Response }{}}  
-          }}  
-    }
-   }
-  }
+  {
+     \vbox {
+        \framebox[6in]{\stackunder{ \large{Service} }{
+            \fbox{\stackunder{ ServiceRegistry.Server }{}}  
+            \fbox{\stackunder{ ServiceRegistry.Client }{}}  
+            \fbox{\stackunder{ Service }{}}  
+            }}  
+      }
+     \vbox {
+        \framebox[6in]{\stackunder{ \large{Messaging} }{
+            \fbox{\stackunder{ Publisher }{}}  
+            \fbox{\stackunder{ Subscriber }{}}  
+            \fbox{\stackunder{ Request }{}}  
+            \fbox{\stackunder{ Response }{}}  
+            }}  
+      }
+      \vbox {
+        \framebox[6in]{\stackunder{ \large{Communications} }{
+            \fbox{\stackunder{ Publisher }{}}  
+            \fbox{\stackunder{ Subscriber }{}}  
+            \fbox{\stackunder{ Request }{}}  
+            \fbox{\stackunder{ Response }{}}  
+            }}  
+      }
  }
 
 \chapter{Examples}
