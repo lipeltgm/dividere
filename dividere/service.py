@@ -20,7 +20,7 @@ class Service:
   '''
   def __init__(self):
     '''
-      Find an available port within port range [5000,6000], create
+      Find an available port within port range [5100,6000], create
       incoming socket with the port, register the service (e.g. derived class name)
       and port with the name service, then begin waiting for an processing inbound
       messages in an active thread.
@@ -31,6 +31,11 @@ class Service:
     self.done_=False
     self.tid_=threading.Thread(target=self.run, args=())
     self.tid_.start()
+    self.tid1_=threading.Thread(target=self.reregister, args=())
+    self.tid1_.start()
+
+  def __del__(self):
+    self.stop()
 
   def stop(self):
     '''
@@ -73,7 +78,17 @@ class Service:
         logging.debug("received %s: %s"%(msgName,S))
         fx='self.handle%s(msg)'%(msgName)
         eval(fx)
-    logging.debug("stopping thread")
+
+  def reregister(self):
+    addr='localhost'
+    port=registry.ServiceRegistry.Server.subPort
+    subPort=messaging.Subscriber('tcp://%s:%d'%(addr,port))
+    while(not self.done_):
+      if subPort.wait(1000):
+        msg=subPort.recv()
+        serverPort=registry.ServiceRegistry.Server.port
+        serviceRegistry=registry.ServiceRegistry.Client('localhost',serverPort)
+        serviceRegistry.registerService(self.name_, self.port_)
 
 
   def setupSocket(self):
@@ -83,7 +98,7 @@ class Service:
       if you fail to find an available port
     '''
     done=False
-    portRange=range(5000,6000)
+    portRange=range(5100,6000)
     i=portRange[0]
     while (not done and i in portRange):
       i += 1

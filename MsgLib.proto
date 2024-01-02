@@ -22,6 +22,9 @@ message ack {
   bool ok=1;
 }
 
+message RediscoverReq {
+}
+
 message ServiceLookupReq {
   string serviceName=1;
 }

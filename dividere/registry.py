@@ -21,17 +21,24 @@ class ServiceRegistry:
       incoming registration and lookup requests.  Open the incoming port
       and wait for incoming messages in an independent thread.
     '''
-    port=5001
-    def __init__(self,port):
+    port=5000
+    subPort=5001
+    def __init__(self):
       '''
         Instantiate an object, open the port, hand-off to background thread
         for processing.
       '''
       self.serviceMap=dict()
-      self.reqSock_=messaging.Response('tcp://*:%d'%(port))
+      self.reqSock_=messaging.Response('tcp://*:%d'%(self.port))
+      self.pubSock_=messaging.Publisher('tcp://*:%d'%(self.subPort))
       self.done_=False
       self.tid_=threading.Thread(target=self.run, args=())
       self.tid_.start()
+
+    def __del__(self):
+      self.stop()
+      self.reqSock_=None
+      self.pubSock_=None
 
     def stop(self):
       '''
@@ -47,6 +54,9 @@ class ServiceRegistry:
         handing the message requires sending a response message to
         satisfy the socket protocol
       '''
+      time.sleep(1); #--delay for late joiner
+      logging.debug("publishing rediscovery request")
+      self.pubSock_.send(MsgLib.RediscoverReq())
       while not self.done_:
         time.sleep(1)
         if self.reqSock_.wait(1000):
@@ -66,6 +76,7 @@ class ServiceRegistry:
       S='; '.join(str(msg).split("\n"))
       logging.info("received service registration: %s"%(S))
       self.serviceMap[msg.serviceName]=(msg.server,msg.port)
+      logging.debug("self.serviceMap: %s"%(str(self.serviceMap)))
       ack=MsgLib.ack()
       ack.ok=True
       self.reqSock_.send(ack)
@@ -134,9 +145,11 @@ class ServiceRegistry:
       m.server=self.getLocalIp()
       m.port=port
       self.reqSock_.send(m)
-      ack=self.reqSock_.recv()
-      S='; '.join(str(ack).split("\n"))
-      logging.info("received unregistration ack: %s"%(S))
+      msgAvail=self.reqSock_.wait(5000)
+      if msgAvail:
+        ack=self.reqSock_.recv()
+        S='; '.join(str(ack).split("\n"))
+        logging.info("received unregistration ack: %s"%(S))
 
     def getLocalIp(self):
       '''

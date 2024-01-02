@@ -20,12 +20,11 @@ def getLocalIp():
 class serviceRegistryTests(unittest.TestCase):
   def test00(self):
     logging.info("executing test")
-    serverPort=dividere.registry.ServiceRegistry.Server.port
-    serviceRegistry=dividere.registry.ServiceRegistry.Server(serverPort)
+    serviceRegistry=dividere.registry.ServiceRegistry.Server()
  
     serviceName='someService'
-    servicePort=5001
-    client=dividere.registry.ServiceRegistry.Client('localhost',serverPort)
+    servicePort=5101
+    client=dividere.registry.ServiceRegistry.Client('localhost',dividere.registry.ServiceRegistry.Server.port)
     client.registerService(serviceName, servicePort)
     m=client.lookupService(serviceName)
     print("m:",m)
