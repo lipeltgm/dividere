@@ -9,7 +9,6 @@ devSetup-18.04.1:
 	${SH} sudo pip3 install -y zmq
 	${SH} sudo pip3 install -y twine
 
-
 devSetup-22.04.1:
 	${SH} sudo apt-get install -y libzmq3-dev
 	${SH} sudo apt-get install -y python3-pip
@@ -18,7 +17,7 @@ devSetup-22.04.1:
 	${SH} sudo apt install -y texlive-latex-base
 	${SH} sudo apt install -y texlive-full
 
-docs:
+docs: msg
 	${SH} cd doc; make
 
 buildPipPackage: msg
@@ -35,14 +34,6 @@ test: msg
         #--run tests w/ and w/o debug logging
 	${SH} cd ./tests; ./uTests.py --verbose
 	${SH} cd ./tests; ./uTests.py 
-#	${SH} cd ./tests; ./uTests.py --verbose serviceRegistryTests
-#	${SH} cd ./tests; ./uTests.py serviceRegistryTests
-#	${SH} cd ./tests; ./uTests.py serviceTests
-
-#db: msg
-#	${SH} cd ./tests; protoc --proto_path=./ --python_out=. DbMsg.proto
-#	${SH} cd ./tests; ./uTests.py --verbose dbProtoTests
-
 
 protobuf:
 	${SH} mkdir temp/
@@ -61,5 +52,3 @@ clean:
 	${SH} cd doc; make clean
 	${RM} -rf ./temp/
 	${SH} cd ./examples/; make clean
-
-

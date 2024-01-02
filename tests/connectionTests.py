@@ -81,7 +81,7 @@ class connectionTests(unittest.TestCase):
     self._singleThreadPubSubVaryMsgLenTest(endPt,endPt)
 
   def _singleThreadReqRepTest(self, reqEndpt, repEndpt):
-    req=dividere.connection.Request([reqEndpt])
+    req=dividere.connection.Request(reqEndpt)
     rep=dividere.connection.Response(repEndpt)
     time.sleep(1); #--let subscribers get set up before sending initial msg
 

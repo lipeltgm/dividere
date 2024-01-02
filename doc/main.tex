@@ -2,6 +2,7 @@
 \usepackage{tcolorbox}
 \usepackage{listings}
 \usepackage[usestackEOL]{stackengine}
+\usepackage{verbatim}
 
 \newcommand{\insertPython}[1]{ 
 \begin{tcolorbox}[title=#1,coltitle=lightgray,width=6in]
@@ -62,9 +63,22 @@ These two layers are expected to expand in the future, we also intend on adding 
             \fbox{\stackunder{ Response }{}}  
             }}  
       }
- }
+ } 
+
+Dividere implements a layered architecture approach, more primitive abstractions located at the lower layers, with specialized abstractions atop.  Upper layers utilizing lower layer componenents.
+
+\section{Communications}
+The communications layer focuses on providing string-based messaging components with generalized debugging visibility.  Each consumer component allows blocking and time-out blocking message retrieval interfaces.  Most of these components provide a light-weight facade to ZeroMQ components.
+
+\section{Messaging}
+This layer mirrors many of the components from the communications layer with a subtle difference, components in this layer utilize protobuf messaging protocol rather than string-based messages.  This layer is intended to provide multi-language integration support.
+
+\section{Service}
+The service layer provides service-based abstactions, including a 'Service' abstract class that registers with the centralized, server-based, name-service.
 
 \chapter{Examples}
 \insertPython{simplePubSub.py}
 
+\chapter{Reference}
+\verbatiminput{ref.txt}
 \end{document}

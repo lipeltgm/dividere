@@ -208,7 +208,7 @@ class messagingTests(unittest.TestCase):
     #-- as transmitted
     logging.info("executing test")
     Port=5555
-    req=dividere.messaging.Request(['tcp://localhost:%d'%(Port)])
+    req=dividere.messaging.Request('tcp://localhost:%d'%(Port))
     rep=dividere.messaging.Response('tcp://*:%d'%(Port))
 
     msg=messagingEncoderTests.msgFactory(TestMsg.testDtMsg01())
@@ -227,7 +227,7 @@ class messagingTests(unittest.TestCase):
     #-- of messages
     logging.info("executing test")
     Port=5555
-    req=dividere.messaging.Request(['tcp://localhost:%d'%(Port)])
+    req=dividere.messaging.Request('tcp://localhost:%d'%(Port))
     rep=dividere.messaging.Response('tcp://*:%d'%(Port))
     time.sleep(1)
 

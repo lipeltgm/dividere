@@ -27,7 +27,7 @@ class serviceTests(unittest.TestCase):
     logging.debug("m: %s"%(str(m)))
     endPt="tcp://%s:%s"%('localhost', m.port)
     logging.debug("endPt:",endPt)
-    sock=dividere.messaging.Request([endPt])
+    sock=dividere.messaging.Request(endPt)
     msg=TestMsg.MyClassReq()
     sock.send(msg)
     reply=sock.recv()

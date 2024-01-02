@@ -170,6 +170,8 @@ class Request(Connector):
       create a socket, register it for monitoring, and connect
       it to the specified endpoint
     '''
+    if not isinstance(endPointList, list):
+      endPointList=[endPointList]
     super(self.__class__,self).__init__()
     self.socket_=self.ctx_.socket(zmq.REQ)
     self.tid_=self.registerSocketMonitoring(self.socket_)
