@@ -7,6 +7,7 @@ import time
 import os
 import random
 import threading
+import zmq
 
 class connectionTests(unittest.TestCase):
   def _singleThreadPubSubTest(self, pubEndpt, subEndpt):
@@ -157,3 +158,25 @@ class connectionTests(unittest.TestCase):
     logging.info("executing test")
     for i in range(1,10):
       self._testReqRepCardinality(i)
+
+  def test09(self):
+     #--test broker component, req/rep connect to it and can exchange messaging
+     logging.info("executing test")
+     fPort=5559
+     bPort=5560
+     proxy=dividere.connection.Proxy(fPort,bPort)
+
+     req=dividere.connection.Request("tcp://localhost:%d"%(fPort))
+     rep=dividere.connection.Response("tcp://localhost:%d"%(bPort))
+
+     for i in range(0,5000):
+       s=b'message %4d'%(i)
+       req.send(s)
+       m = rep.recv()
+       rep.send(m)
+       m=req.recv()
+       self.assertTrue(m==s, "%s == %s"%(s,m))
+     proxy.stop()
+     req=None
+     rep=None
+

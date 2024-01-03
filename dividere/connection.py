@@ -221,7 +221,15 @@ class Response(Connector):
     self.socket_=self.ctx_.socket(zmq.REP)
     self.tid_=self.registerSocketMonitoring(self.socket_)
     logging.debug("binding to %s"%(endPoint))
-    self.socket_.bind(endPoint)
+    #--rep sockets can be 'bound' to ports or connected to ports
+    #-- binding generally used for 1-1 connections, connecting 
+    #-- used with router/dealer intermediary components, allow
+    #-- both by distinguishing between a preferred bind (e.g. tcp://*:5000)
+    #-- vs connect (e.g. tcp://localhost:5000)
+    if "*:" in endPoint:
+      self.socket_.bind(endPoint)
+    else:
+      self.socket_.connect(endPoint)
     self.poller_=zmq.Poller()
     self.poller_.register(self.socket_,zmq.POLLIN)
 
@@ -247,3 +255,59 @@ class Response(Connector):
     ev=self.poller_.poll(timeOutMs)
     gotMsg=self.socket_ in dict(ev)
     return gotMsg
+
+class Proxy(Connector):
+  '''
+  Proxy abstraction defines a router/dealer pairing to allow
+  async req/rep client connections.
+  '''
+  def __init__(self, fePort, bePort):
+    '''
+      Front-end utilizes the base class socket_ attribute, adds a backend
+      socket.  Binds to two known ports
+    '''
+    super(self.__class__,self).__init__()
+    self.socket_ = self.ctx_.socket(zmq.ROUTER)
+    self.tid_=self.registerSocketMonitoring(self.socket_)
+    self.backend = self.ctx_.socket(zmq.DEALER)
+    self.tid1_=self.registerSocketMonitoring(self.backend)
+    self.socket_.bind("tcp://*:%d"%(fePort))
+    self.backend.bind("tcp://*:%d"%(bePort))
+
+    # Initialize poll set
+    self.poller = zmq.Poller()
+    self.poller.register(self.socket_, zmq.POLLIN)
+    self.poller.register(self.backend, zmq.POLLIN)
+    self.done_=False
+    self.mtid_ = threading.Thread(target=self.run, args=())
+    self.mtid_.start()
+
+  def stop(self):
+    '''
+      Signal the active thread it should terminate, wait for
+      the thread to halt and close out derived class resources
+    '''
+    self.done_=True
+    self.mtid_.join()
+    self.backend.close()
+    self.tid1_.join()
+
+  def run(self):
+    '''
+      Loop until signaled to stop, wait for an event
+      for a specified time-out, to prevent blocking calls,
+      then route inbound messages from one to the other socket
+    '''
+    while not self.done_:
+      logging.debug("running")
+      socks = dict(self.poller.poll(1000))
+
+      if socks.get(self.socket_) == zmq.POLLIN:
+          message = self.socket_.recv_multipart()
+          self.backend.send_multipart(message)
+  
+      if socks.get(self.backend) == zmq.POLLIN:
+          message = self.backend.recv_multipart()
+          self.socket_.send_multipart(message)
+
+
