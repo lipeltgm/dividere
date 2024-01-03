@@ -27,13 +27,14 @@ class serviceRegistryTests(unittest.TestCase):
     client=dividere.registry.ServiceRegistry.Client('localhost',dividere.registry.ServiceRegistry.Server.port)
     client.registerService(serviceName, servicePort)
     m=client.lookupService(serviceName)
-    print("m:",m)
+    logging.debug("m: %s"%(str(m)))
     self.assertTrue(m.name==serviceName)
     self.assertTrue(m.server==getLocalIp())
     self.assertTrue(m.port==servicePort)
     client.unregisterService(serviceName, servicePort)
     m=client.lookupService(serviceName)
-    print("m:",m)
+    logging.debug("m: %s"%(str(m)))
+    self.assertTrue(m.port==0)
     serviceRegistry.stop()
     time.sleep(3); #--give serviceRegistry a chance to cleanup for future tests
 

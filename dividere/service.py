@@ -31,10 +31,13 @@ class Service:
     self.done_=False
     self.tid_=threading.Thread(target=self.run, args=())
     self.tid_.start()
-    self.tid1_=threading.Thread(target=self.reregister, args=())
+    self.tid1_=threading.Thread(target=self.reregisterThread, args=())
     self.tid1_.start()
 
   def __del__(self):
+    '''
+      Force stopping threads if the object is terminated
+    '''
     self.stop()
 
   def stop(self):
@@ -79,7 +82,12 @@ class Service:
         fx='self.handle%s(msg)'%(msgName)
         eval(fx)
 
-  def reregister(self):
+  def reregisterThread(self):
+    '''
+      This thread supports reregistration in the case that
+      a name service abruptly terminates, is restarted, and
+      notifies services to re-register
+    '''
     addr='localhost'
     port=registry.ServiceRegistry.Server.subPort
     subPort=messaging.Subscriber('tcp://%s:%d'%(addr,port))
