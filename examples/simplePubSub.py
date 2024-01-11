@@ -8,11 +8,12 @@ pub=dividere.messaging.Publisher('tcp://*:%d'%(Port))
 sub=dividere.messaging.Subscriber('tcp://localhost:%d'%(Port))
 time.sleep(2); #--delay to address 'late joiner'
 
-msg=clientMsgs.msg01()
+msg=clientMsgs.Msg01()
 msg.field1='abcd'
 pub.send(msg)
-got=sub.recv()
-assert(got==msg)
+reply=sub.recv()
+print("reply: %s"%(reply))
+assert(reply==msg)
 
 #--destroy pub/sub objects to free resources and terminate threads
 pub=None

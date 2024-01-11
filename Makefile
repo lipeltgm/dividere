@@ -1,4 +1,5 @@
-all: docs msg test 
+.PHONY: examples
+all: docs msg test examples
 
 #--os version specific setup instructions
 devSetup: devSetup-$(shell uname -v | cut -f 2- -d '~' | cut -f 1 -d '-') protobuf
@@ -35,7 +36,7 @@ test: msg
 	${SH} cd ./tests; ./uTests.py --verbose 
 	${SH} cd ./tests; ./uTests.py 
 	${SH} cd ./tests; ./uTests.py --quiet
-#	${SH} cd ./tests; ./uTests.py connectionTests.test09
+#	${SH} cd ./tests; ./uTests.py --quiet messagingTests.test06
 
 protobuf:
 	${SH} mkdir temp/
@@ -44,6 +45,9 @@ protobuf:
 	${SH} cd temp/protobuf-3.19.4; ./autogen.sh; ./configure; make; 
 	${SH} cd temp/protobuf-3.19.4; sudo make install; sudo ldconfig
 	${SH} touch $@
+
+examples:
+	${SH} cd examples; make run
 
 clean:
 	${RM} -rf build dist *.egg-info

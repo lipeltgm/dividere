@@ -5,6 +5,7 @@ import TestMsg_pb2 as TestMsg
 import random
 import uuid
 import time
+import threading
 
 class messagingEncoderTests(unittest.TestCase):
   @staticmethod
@@ -274,3 +275,81 @@ class messagingTests(unittest.TestCase):
     for e in repList:
       e=None
     req=None
+
+  def test05(self):
+    #--test simple proxy usage, one client, one worker
+    self.assertTrue(True)
+    fePort=6001
+    bePort=6002
+    proxy=dividere.connection.Proxy(fePort,bePort)
+    c1=dividere.messaging.Request('tcp://localhost:%d'%(fePort))
+    w1=dividere.messaging.Response('tcp://localhost:%d'%(bePort))
+    for i in range(0,9):
+      msg=messagingEncoderTests.msgFactory(TestMsg.testDtMsg01())
+      msg.field1=i
+      c1.send(msg)
+      msg2=w1.recv()
+      logging.debug(msg2)
+      w1.send(msg2)
+      m2=c1.recv()
+      self.assertTrue(m2.field1==i)
+    proxy.stop()
+    c1=None
+    w1=None
+
+  def _test06ClientThread(self,endPt):
+    #--simple multi-threaded client, send 5 messaages, each with the
+    #-- loop iterator payload, confirm you get a response and 
+    #-- the response incremented the payload by 100
+    c=dividere.messaging.Request(endPt)
+    for i in range(0,5):
+      req=messagingEncoderTests.msgFactory(TestMsg.testDtMsg01())
+      req.field1=i
+      #print("client thread: %s"%(str(threading.get_ident())))
+      c.send(req)
+      self.assertTrue(c.wait(1000))
+      rep=c.recv()
+      self.assertTrue(rep.field1==req.field1+100)
+      
+  def _test06WorkerThread(self,endPt):
+    #--simple multi-threaded worker, wait for a message (3 sec timeout)
+    #-- if one arrives, read the message, respond back with message
+    #-- by incrementing the field by 100
+    w=dividere.messaging.Response(endPt)
+    while(w.wait(3000)):
+      m=w.recv()
+      #print("worker thread: %s"%(str(threading.get_ident())))
+      m.field1+=100
+      w.send(m)
+      logging.debug('sending %s'%(str(m)))
+    logging.debug("terminating thread")
+    
+  def _test06(self,numClients, numWorkers):
+    #--start proxy, clients and workers, start them and wait for them
+    #-- to conclude.  Clients and workers confirm expected messaging
+    fePort=6001
+    bePort=6002
+    proxy=dividere.connection.Proxy(fePort,bePort)
+    tidList=[]
+    for w in range(0,numWorkers):
+      tid=threading.Thread(target=self._test06WorkerThread, args=('tcp://localhost:%d'%(bePort),))
+      tid.start()
+      tidList.append(tid)
+
+    for c in range(0,numClients):
+      tid=threading.Thread(target=self._test06ClientThread, args=('tcp://localhost:%d'%(fePort),))
+      tid.start()
+      tidList.append(tid)
+
+    for el in tidList:
+      el.join()
+    proxy.stop()
+
+  def test06(self):
+    #--test a variety of cardinality of clients and workers
+    self._test06(1,1)
+    self._test06(1,5)
+    self._test06(5,1)
+    self._test06(2,3)
+    self._test06(40,60)
+    self._test06(60,40)

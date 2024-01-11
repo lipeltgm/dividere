@@ -5,6 +5,9 @@ import google.protobuf.message_factory
 #from google.protobuf.any_pb2 import Any
 from dividere import MsgLib
 from dividere import connection
+import os
+import threading
+import time
 
 #================================================================================
 #-- Encoder/Decoder class; takes in protobuf message, encloses it in a envelope
@@ -178,7 +181,7 @@ class Request:
 
   def recv(self):
     '''
-      Retrieve byte stream from repscriber, parse byte stream into envelope
+      Retrieve byte stream from response, parse byte stream into envelope
        message, then decode and return the contained user message
     '''
     S=self.sock_.recv()
@@ -220,7 +223,7 @@ class Response:
 
   def recv(self):
     '''
-      Retrieve byte stream from repscriber, parse byte stream into envelope
+      Retrieve byte stream from requester, parse byte stream into envelope
        message, then decode and return the contained user message
     '''
     S=self.sock_.recv()
@@ -242,4 +245,71 @@ class Response:
     '''
     env=self.encoder_.encode(msg)
     self.sock_.send(env.SerializeToString())
+
+class MsgReactor:
+  '''
+    Abstraction to support active-thread which listens to a vector of a
+    varying consumer messaging objects (e.g. Sub, Response, ...), decoding
+    the incoming message and calling a specialized hander method (provided mostly
+    by derived classes).
+  '''
+  def __init__(self, obj):
+    '''
+      Spawn an independent thread which monitors the specified consumer message
+      objects, also append an additional object to support multi-threaded signalling
+      to support halting the thread when no longer needed.
+      (ipc pub/sub is used to signal thread termination)
+    '''
+    self.done_=False
+    if isinstance(obj, list):
+      self.objList_=obj
+    else:
+      self.objList_=[obj]
+
+    self.ipcName_='ipc:///tmp/ipc-%d'%(os.getpid())
+    self.objList_.append(Subscriber(self.ipcName_))
+    self.tid_=threading.Thread(target=self.msgHandler,args=())
+    self.tid_.start()
+
+  def __del__(self):
+    '''
+      Deallocate all messaging objects, which in-turn terminates the zmq contexts
+    '''
+    for e in self.objList_:
+      e=None
+    self.objList_=None
+
+  def stop(self):
+    '''
+      Signal thread to complete, wait for it to complete
+    '''
+    pub=Publisher(self.ipcName_)
+    shutdownMsg=MsgLib.ShutdownEvent()
+    time.sleep(1); #--accomodate late joiner
+    pub.send(shutdownMsg)
+    self.tid_.join()
+
+  def msgHandler(self):
+    '''
+      This method encapsulates the 'active object' logic, while 'not done'
+      poll/wait for an inbound message from any messaging object in the list
+      if a message exists, grab it and call a specialized message handler function
+      (based on message name), provide the messaging object it arrived on
+      to allow handler to choose to send reply (for compliant messaging objects like Req/Rep)
+    '''
+    while not self.done_:
+      for el in self.objList_:
+        gotMsg=el.wait(1)
+        if gotMsg:
+          msg=el.recv()
+          msgName=msg.__class__.__name__
+          fx='self.handle%s(el,msg)'%(msgName)
+          eval(fx)
+
+  def handleShutdownEvent(self,obj,msg):
+    '''
+      Set the done flag, this is done from the thread to avoid need for necessary guards
+    '''
+    self.done_=True;
+
 
