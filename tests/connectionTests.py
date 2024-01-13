@@ -8,6 +8,7 @@ import os
 import random
 import threading
 import zmq
+import re
 
 class connectionTests(unittest.TestCase):
   def _singleThreadPubSubTest(self, pubEndpt, subEndpt):
@@ -180,3 +181,92 @@ class connectionTests(unittest.TestCase):
      req=None
      rep=None
 
+
+  class ClientTask:
+    def __init__(self,endPt, obj):
+      self.tid_=threading.Thread(target=self.run, args=(endPt,))
+      self.tid_.start()
+      self.obj_=obj
+
+    def stop(self):
+      self.tid_.join()
+  
+    def run(self, endPt):
+      sock=dividere.connection.Dealer(endPt)
+      tId=threading.get_native_id()
+      for i in range(0,1000):
+        msg=b'message %d.%d'%(tId,i)
+        sock.send(msg)
+        reply=sock.recv()
+        logging.debug('client reply: %s %s'%(msg,reply))
+        m1=re.match('message (.*)',msg.decode('utf-8'))
+        m2=re.match('ack (.*)',reply.decode('utf-8'))
+        self.obj_.assertTrue(m1.group(1)==m2.group(1))
+
+  class WorkerTask:
+    def __init__(self,endPt):
+      self.done_=False
+      self.tid_=threading.Thread(target=self.run, args=(endPt,))
+      self.tid_.start()
+  
+    def stop(self):
+      self.done_=True
+  
+    def run(self, endPt):
+      sock=dividere.connection.Dealer(endPt)
+      while(not self.done_):
+        if sock.wait(1):
+          msg=sock.recv()
+          S=msg[1].decode('utf-8')
+          m=re.match('message (.*)',S)
+          n=str(m.group(1))
+          reply=b'ack %s'%(n.encode('utf-8'))
+          sock.send((msg[0],reply))
+  
+  def test10(self):
+    #--test simple dealer <=> router/dealer <=> dealer configuration
+    #== by sending asychronous messages, and confirming ack id matches
+    #-- the msg id
+    fePort=5559
+    bePort=5560
+    c=self.ClientTask('tcp://localhost:%d'%(fePort),self)
+    w=self.WorkerTask('tcp://localhost:%d'%(bePort))
+    p=dividere.connection.Proxy(fePort,bePort)
+    time.sleep(1)
+  
+    c.stop()
+    w.stop()
+    p.stop()
+  
+  def _test11(self,numClients,numWorkers):
+    #--test multi-threaded dealer <=> router/dealer <=> dealer configuration
+    #== by sending asychronous messages, and confirming ack id matches
+    #-- the msg id
+    #-- this primarily confirms the response messages are properly routed
+    #-- back to the original sender client (ie. route back design works)
+    fePort=5559
+    bePort=5560
+    cList=[self.ClientTask('tcp://localhost:%d'%(fePort),self) for i in range(0,numClients)]
+    wList=[self.WorkerTask('tcp://localhost:%d'%(bePort)) for i in range(0,numWorkers)]
+    p=dividere.connection.Proxy(fePort,bePort)
+    time.sleep(1)
+  
+    for c in cList:
+      c.stop()
+    for w in wList:
+      w.stop()
+    p.stop()
+
+  def test11(self):
+    #--test multi-threaded dealer <=> router/dealer <=> dealer configuration
+    #== by sending asychronous messages, and confirming ack id matches
+    #-- the msg id
+    #-- this primarily confirms the response messages are properly routed
+    #-- back to the original sender client (ie. route back design works)
+    self._test11(1,1)
+    self._test11(5,1)
+    self._test11(10,1)
+    self._test11(1,5)
+    self._test11(5,5)
+    self._test11(10,5)
+    self._test11(50,20)

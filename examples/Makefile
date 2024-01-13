@@ -12,6 +12,10 @@ clientMsgs.proto:
 	${SH} echo 'message Msg02 {' >> $@
 	${SH} echo '  string field1=1;' >> $@
 	${SH} echo '}' >> $@
+	${SH} echo 'message Msg03 {' >> $@
+	${SH} echo '  int64 field1=1;' >> $@
+	${SH} echo '  bool isPrime=2;' >> $@
+	${SH} echo '}' >> $@
 
 %_pb2.py: %.proto
 	${SH} protoc --proto_path=./ --python_out=./ $<

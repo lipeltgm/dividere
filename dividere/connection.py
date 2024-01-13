@@ -3,6 +3,7 @@ import zmq
 import time
 import threading
 from zmq.utils.monitor import recv_monitor_message
+from collections import namedtuple
 
 class Connector:
   '''
@@ -310,4 +311,62 @@ class Proxy(Connector):
           message = self.backend.recv_multipart()
           self.socket_.send_multipart(message)
 
+class Dealer(Connector):
+  '''
+   Dealer 'generally' is a replacement for Request/Response objects without
+   the strict send/receive protocol.  Use of dealer objects allow asynchronous
+   messaging, like sending N messages rather than the strict send/recv protocol.
+  '''
+  def __init__(self, endPointList):
+    '''
+      Allocate all resources to support the object;         
+      create a socket, register it for monitoring, and connect
+      it to the specified endpoint
+    '''
+    if not isinstance(endPointList, list):
+      endPointList=[endPointList]
+    super(self.__class__,self).__init__()
+    self.socket_=self.ctx_.socket(zmq.DEALER)
+    self.tid_=self.registerSocketMonitoring(self.socket_)
+    for endPt in endPointList:
+      logging.debug("binding to %s"%(endPt))
+      self.socket_.connect(endPt)
+    self.poller_=zmq.Poller()
+    self.poller_.register(self.socket_,zmq.POLLIN)
+
+  def send(self, msg):
+    '''
+      Dealer socket must be capable of sending routed or unrouted messages,
+      for example; client-side messages to anonymous workers may be unrouted,
+      and worker responses may be routed.  All depending on the communications
+      chain of objects.
+    '''
+    if isinstance(msg,tuple):
+      self.socket_.send(msg[0],zmq.SNDMORE)
+      self.socket_.send(msg[1])
+    else:
+      self.socket_.send(msg)
+
+
+  def recv(self):
+    '''
+      Inbound message could be routed, or unrouted, if routed return
+      identifier,msg pair, if unrouted just return the msg
+    '''
+    MsgPair=namedtuple("MsgPair",['identity','msg'])
+    pair=self.socket_.recv_multipart()
+    if len(pair) > 1:
+      return MsgPair(pair[0],pair[1])
+    else:
+      return pair[0]
+
+
+  def wait(self, timeOutMs):
+    '''
+      Wait for a message to arrive within the specified timeout, return
+      true/false representing whether a message is available
+    '''
+    ev=self.poller_.poll(timeOutMs)
+    gotMsg=self.socket_ in dict(ev)
+    return gotMsg
 
