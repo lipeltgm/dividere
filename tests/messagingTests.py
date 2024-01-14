@@ -353,3 +353,115 @@ class messagingTests(unittest.TestCase):
     self._test06(2,3)
     self._test06(40,60)
     self._test06(60,40)
+
+  def test07(self):
+    #--test dealer <==> router/dealer <==> dealer configuration
+    fePort=6001
+    bePort=6002
+    proxy=dividere.connection.Proxy(fePort,bePort)
+    c=dividere.messaging.Dealer('tcp://localhost:%d'%(fePort))
+    w=dividere.messaging.Dealer('tcp://localhost:%d'%(bePort))
+
+    req=messagingEncoderTests.msgFactory(TestMsg.testDtMsg01())
+    req.field1=99
+    c.send(req)
+
+    self.assertTrue(w.wait(1000))
+    id,msg=w.recv()
+    logging.debug("worker received: %s %s"%(id,msg))
+    w.send((id,msg))
+
+    m2=c.recv()
+    logging.debug("client received: %s"%(m2))
+    self.assertTrue(req==msg)
+    self.assertTrue(req==m2)
+
+    proxy.stop()
+    c=None
+    w=None
+
+  def test08(self):
+    #--test dealer <==> dealer peer-to-peer configuration
+    port=6001
+    c=dividere.messaging.Dealer('tcp://localhost:%d'%(port))
+    w=dividere.messaging.Dealer('tcp://*:%d'%(port))
+
+    req=messagingEncoderTests.msgFactory(TestMsg.testDtMsg01())
+    req.field1=99
+    c.send(req)
+
+    self.assertTrue(w.wait(1000))
+    msg=w.recv()
+    logging.debug("worker received: %s"%(msg))
+    w.send(msg)
+
+    m2=c.recv()
+    logging.debug("client received: %s"%(m2))
+    self.assertTrue(req==msg)
+    self.assertTrue(req==m2)
+
+    c=None
+    w=None
+
+  class Test09Client:
+    def __init__(self, endPt, obj):
+      self.obj_=obj
+      self.tid_=threading.Thread(target=self.run, args=(endPt,))
+      self.tid_.start()
+
+    def stop(self):
+      self.tid_.join()
+
+    def run(self, endPt):
+      sock=dividere.messaging.Dealer(endPt)
+      for i in range(0,1):
+        req=messagingEncoderTests.msgFactory(TestMsg.testDtMsg01())
+        sock.send(req)
+        logging.debug("client sent %s"%(str(req)))
+        self.obj_.assertTrue(sock.wait(1000))
+        rep=sock.recv()
+        logging.debug("client got %s"%(str(rep)))
+        self.obj_.assertTrue(req==rep)
+      sock=None
+
+  class Test09Worker:
+    def __init__(self, endPt):
+      self.done_=False
+      self.tid_=threading.Thread(target=self.run, args=(endPt,))
+      self.tid_.start()
+
+    def stop(self):
+      self.done_=True;
+      self.tid_.join()
+
+    def run(self, endPt):
+      sock=dividere.messaging.Dealer(endPt)
+      while not self.done_:
+        if sock.wait(1000):
+          id,msg=sock.recv()
+          logging.debug("worker received %s %s"%(str(id),str(msg)))
+          sock.send((id,msg))
+      sock=None
+
+  def _test09(self, numClients, numWorkers):
+    fePort=6000
+    bePort=6001
+    proxy=dividere.connection.Proxy(fePort,bePort)
+    cList=[self.Test09Client('tcp://localhost:%d'%(fePort),self) for i in range(0,1)]
+    wList=[self.Test09Worker('tcp://localhost:%d'%(bePort)) for i in range(0,1)]
+
+    logging.debug("stopping clients")
+    for e in cList:
+      e.stop()
+    logging.debug("stopping workers")
+    for e in wList:
+      e.stop()
+    logging.debug("stopping proxy")
+    proxy.stop()
+
+  def test09(self):
+    self._test09(1,1)
+    self._test09(5,1)
+    self._test09(1,5)
+    self._test09(10,50)
+    self._test09(50,10)

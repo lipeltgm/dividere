@@ -205,10 +205,7 @@ class Response:
 
   def __init__(self,endPoint):
     '''
-       Allocate all necessary resources, repscribe to messages.
-       If message repscription list is empty, repscribe to all messages
-       otherwise repscribe to the specified messages exclusively
-       create repscriber object and decoder components
+       Allocate all necessary resources, socket and encoder/decoder pair.
     '''
     self.sock_=connection.Response(endPoint)
     self.decoder_=ProtoBuffDecoder()
@@ -220,6 +217,7 @@ class Response:
     '''
     self.sock_=None
     self.decoder_=None
+    self.encoder_=None
 
   def recv(self):
     '''
@@ -245,6 +243,73 @@ class Response:
     '''
     env=self.encoder_.encode(msg)
     self.sock_.send(env.SerializeToString())
+
+class Dealer:
+  '''
+    General replacement for Request/Response components, but relaxes
+    the strict send/receive protocol.  This component support more
+    asynchronous messaging by allowing multiple send/recv functionality.
+  '''
+
+  def __init__(self,endPoint):
+    '''
+       Allocate all necessary resources, including socket and encoder/decoder
+       pair.  All transported communications will be done in the form of a
+       message envelope
+    '''
+    self.sock_=connection.Dealer(endPoint)
+    self.decoder_=ProtoBuffDecoder()
+    self.encoder_=ProtoBuffEncoder()
+
+  def __del__(self):
+    '''
+      Free all allocated object resources
+    '''
+    self.sock_=None
+    self.decoder_=None
+    self.encoder_=None
+
+  def recv(self):
+    '''
+      Return value _may_ be a single message, or a tuple (id,msg)
+      depending on usage.  Routed messages (e.g. one thru a router, 
+      may include the 'identity' (route) of the message so it can be
+      routed back to the originating sender.  
+    '''
+    P=self.sock_.recv()
+    if isinstance(P,tuple):
+      id=P[0]
+      S=P[1]
+    else:
+      S=P
+    env=MsgLib.msgEnvelope()
+    env.ParseFromString(S)
+
+    if isinstance(P,tuple):
+      return (id, self.decoder_.decode(env))
+    else:
+      return self.decoder_.decode(env)
+
+  def wait(self, timeOutMs):
+    '''
+      Wait for a message to arrive within the specified timeout, return
+      true/false representing whether a message is available
+    '''
+    return self.sock_.wait(timeOutMs)
+
+  def send(self, msg):
+    '''
+      Encode message into envelope container, convert it to
+      a byte stream and send out wire via the connector
+    '''
+    if isinstance(msg,tuple):
+      id=msg[0]
+      env=self.encoder_.encode(msg[1])
+      self.sock_.send((id,env.SerializeToString()))
+    else:
+      env=self.encoder_.encode(msg)
+      self.sock_.send(env.SerializeToString())
+
 
 class MsgReactor:
   '''

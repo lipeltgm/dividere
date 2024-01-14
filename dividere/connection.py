@@ -329,8 +329,12 @@ class Dealer(Connector):
     self.socket_=self.ctx_.socket(zmq.DEALER)
     self.tid_=self.registerSocketMonitoring(self.socket_)
     for endPt in endPointList:
-      logging.debug("binding to %s"%(endPt))
-      self.socket_.connect(endPt)
+      if '*' in endPt:
+        logging.debug("binding to %s"%(endPt))
+        self.socket_.bind(endPt)
+      else:
+        logging.debug("connecting to %s"%(endPt))
+        self.socket_.connect(endPt)
     self.poller_=zmq.Poller()
     self.poller_.register(self.socket_,zmq.POLLIN)
 
