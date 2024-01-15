@@ -33,11 +33,11 @@ class serviceTests(unittest.TestCase):
     obj.stop()
     nsServer.stop()
 
-  def delayedNameService(self, sleepMs, runForMs):
-    time.sleep(sleepMs/1000.0)
+  def delayedNameService(self, sleepSecs, runForSecs):
+    time.sleep(sleepSecs)
     logging.debug("ns starting")
     nsServer=dividere.registry.ServiceRegistry.Server()
-    time.sleep(runForMs/1000.0)
+    time.sleep(runForSecs)
     nsServer.stop()
     logging.debug("ns stopped")
 
@@ -47,7 +47,7 @@ class serviceTests(unittest.TestCase):
     #-- for response, unavailable name service will block service 'til it comes
     #-- on-line
     logging.info("executing test")
-    tid=threading.Thread(target=self.delayedNameService, args=(10000,10000,))
+    tid=threading.Thread(target=self.delayedNameService, args=(10.0,10.0,))
     tid.start()
 
     obj=MyService()
@@ -66,14 +66,15 @@ class serviceTests(unittest.TestCase):
     assert(reply and TestMsg.MyServiceRep().__class__.__name__==reply.__class__.__name__)
 
   def test02(self):
-    tid1=threading.Thread(target=self.delayedNameService, args=(0,5000,))
+    #--test service re-registration as a result of a terminated/restarted name service
+    tid1=threading.Thread(target=self.delayedNameService, args=(0,5.0,))
     tid1.start()
     obj=MyService()
     tid1.join()
 
-    tid2=threading.Thread(target=self.delayedNameService, args=(5000,5000,))
+    tid2=threading.Thread(target=self.delayedNameService, args=(5.0,5.0,))
     tid2.start()
-    time.sleep(8)
+    time.sleep(8.0)
     nsClient=dividere.registry.ServiceRegistry.Client('localhost',dividere.registry.ServiceRegistry.Server.port)
     m=nsClient.lookupService(obj.name_)
     logging.debug("m: %s"%(str(m)))
