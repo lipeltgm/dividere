@@ -23,7 +23,7 @@ class serviceRegistryTests(unittest.TestCase):
     serviceRegistry=dividere.registry.ServiceRegistry.Server()
  
     serviceName='someService'
-    servicePort=5101
+    servicePort=dividere.connection.PortManager.acquire()
     client=dividere.registry.ServiceRegistry.Client('localhost',dividere.registry.ServiceRegistry.Server.port)
     client.registerService(serviceName, servicePort)
     m=client.lookupService(serviceName)

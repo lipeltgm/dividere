@@ -30,7 +30,7 @@ class connectionTests(unittest.TestCase):
   #--  and confirm they are received in-order
   def test00(self):
     logging.info("executing test")
-    Port=5555
+    Port=dividere.connection.PortManager.acquire()
     self._singleThreadPubSubTest('tcp://*:%d'%(Port),'tcp://localhost:%d'%(Port))
 
 
@@ -71,7 +71,7 @@ class connectionTests(unittest.TestCase):
 
   def test03(self):
     logging.info("executing test")
-    Port=5555
+    Port=dividere.connection.PortManager.acquire()
     self._singleThreadPubSubVaryMsgLenTest('tcp://*:%d'%(Port),'tcp://localhost:%d'%(Port))
 
   def test04(self):
@@ -101,7 +101,7 @@ class connectionTests(unittest.TestCase):
 
   def test05(self):   
     logging.info("executing test")
-    Port=5555
+    Port=dividere.connection.PortManager.acquire()
     reqEndPt='tcp://localhost:%d'%(Port)
     repEndPt='tcp://*:%d'%(Port)
     self._singleThreadReqRepTest(reqEndPt, repEndPt)
@@ -115,7 +115,7 @@ class connectionTests(unittest.TestCase):
     rep=None
 
   def _testReqRepCardinality(self, N):
-    Port=5555
+    Port=dividere.connection.PortManager.acquire()
     portList=[i for i in range(Port,Port+N)]
     tidList=[]
     for port in portList:
@@ -163,8 +163,8 @@ class connectionTests(unittest.TestCase):
   def test09(self):
      #--test broker component, req/rep connect to it and can exchange messaging
      logging.info("executing test")
-     fPort=5559
-     bPort=5560
+     fPort=dividere.connection.PortManager.acquire()
+     bPort=dividere.connection.PortManager.acquire()
      proxy=dividere.connection.Proxy(fPort,bPort)
 
      req=dividere.connection.Request("tcp://localhost:%d"%(fPort))
@@ -227,8 +227,8 @@ class connectionTests(unittest.TestCase):
     #--test simple dealer <=> router/dealer <=> dealer configuration
     #== by sending asychronous messages, and confirming ack id matches
     #-- the msg id
-    fePort=5559
-    bePort=5560
+    fePort=dividere.connection.PortManager.acquire()
+    bePort=dividere.connection.PortManager.acquire()
     c=self.ClientTask('tcp://localhost:%d'%(fePort),self)
     w=self.WorkerTask('tcp://localhost:%d'%(bePort))
     p=dividere.connection.Proxy(fePort,bePort)
@@ -244,8 +244,8 @@ class connectionTests(unittest.TestCase):
     #-- the msg id
     #-- this primarily confirms the response messages are properly routed
     #-- back to the original sender client (ie. route back design works)
-    fePort=5559
-    bePort=5560
+    fePort=dividere.connection.PortManager.acquire()
+    bePort=dividere.connection.PortManager.acquire()
     cList=[self.ClientTask('tcp://localhost:%d'%(fePort),self) for i in range(0,numClients)]
     wList=[self.WorkerTask('tcp://localhost:%d'%(bePort)) for i in range(0,numWorkers)]
     p=dividere.connection.Proxy(fePort,bePort)

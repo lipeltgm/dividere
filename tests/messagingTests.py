@@ -174,7 +174,7 @@ class messagingEncoderTests(unittest.TestCase):
 class messagingTests(unittest.TestCase):
   def test00(self):
     logging.info("executing test")
-    Port=5555
+    Port=dividere.connection.PortManager.acquire()
     pub=dividere.messaging.Publisher('tcp://*:%d'%(Port))
     sub=dividere.messaging.Subscriber('tcp://localhost:%d'%(Port))
     time.sleep(1); #--sleep for late joiner
@@ -185,7 +185,7 @@ class messagingTests(unittest.TestCase):
 
   def test01(self):
     logging.info("executing test")
-    Port=5555
+    Port=dividere.connection.PortManager.acquire()
     pub=dividere.messaging.Publisher('tcp://*:%d'%(Port))
     sub=dividere.messaging.Subscriber('tcp://localhost:%d'%(Port))
     time.sleep(1)
@@ -208,7 +208,7 @@ class messagingTests(unittest.TestCase):
     #--simple single-threaded test, send a message, confirm it's received
     #-- as transmitted
     logging.info("executing test")
-    Port=5555
+    Port=dividere.connection.PortManager.acquire()
     req=dividere.messaging.Request('tcp://localhost:%d'%(Port))
     rep=dividere.messaging.Response('tcp://*:%d'%(Port))
 
@@ -227,7 +227,7 @@ class messagingTests(unittest.TestCase):
     #--test a simple req/rep single-threaded exchange over a variety
     #-- of messages
     logging.info("executing test")
-    Port=5555
+    Port=dividere.connection.PortManager.acquire()
     req=dividere.messaging.Request('tcp://localhost:%d'%(Port))
     rep=dividere.messaging.Response('tcp://*:%d'%(Port))
     time.sleep(1)
@@ -254,7 +254,7 @@ class messagingTests(unittest.TestCase):
     #--test the round-robin point-to-point delivery when specifying a
     #-- series of receivers
     logging.info("executing test")
-    Port=5555
+    Port=dividere.connection.PortManager.acquire()
     N=3
 
     portList=[i for i in range(Port, Port+N)]
@@ -279,8 +279,8 @@ class messagingTests(unittest.TestCase):
   def test05(self):
     #--test simple proxy usage, one client, one worker
     self.assertTrue(True)
-    fePort=6001
-    bePort=6002
+    fePort=dividere.connection.PortManager.acquire()
+    bePort=dividere.connection.PortManager.acquire()
     proxy=dividere.connection.Proxy(fePort,bePort)
     c1=dividere.messaging.Request('tcp://localhost:%d'%(fePort))
     w1=dividere.messaging.Response('tcp://localhost:%d'%(bePort))
@@ -327,8 +327,8 @@ class messagingTests(unittest.TestCase):
   def _test06(self,numClients, numWorkers):
     #--start proxy, clients and workers, start them and wait for them
     #-- to conclude.  Clients and workers confirm expected messaging
-    fePort=6001
-    bePort=6002
+    fePort=dividere.connection.PortManager.acquire()
+    bePort=dividere.connection.PortManager.acquire()
     proxy=dividere.connection.Proxy(fePort,bePort)
     tidList=[]
     for w in range(0,numWorkers):
@@ -356,8 +356,8 @@ class messagingTests(unittest.TestCase):
 
   def test07(self):
     #--test dealer <==> router/dealer <==> dealer configuration
-    fePort=6001
-    bePort=6002
+    fePort=dividere.connection.PortManager.acquire()
+    bePort=dividere.connection.PortManager.acquire()
     proxy=dividere.connection.Proxy(fePort,bePort)
     c=dividere.messaging.Dealer('tcp://localhost:%d'%(fePort))
     w=dividere.messaging.Dealer('tcp://localhost:%d'%(bePort))
@@ -382,7 +382,7 @@ class messagingTests(unittest.TestCase):
 
   def test08(self):
     #--test dealer <==> dealer peer-to-peer configuration
-    port=6001
+    port=dividere.connection.PortManager.acquire()
     c=dividere.messaging.Dealer('tcp://localhost:%d'%(port))
     w=dividere.messaging.Dealer('tcp://*:%d'%(port))
 
@@ -444,8 +444,8 @@ class messagingTests(unittest.TestCase):
       sock=None
 
   def _test09(self, numClients, numWorkers):
-    fePort=6000
-    bePort=6001
+    fePort=dividere.connection.PortManager.acquire()
+    bePort=dividere.connection.PortManager.acquire()
     proxy=dividere.connection.Proxy(fePort,bePort)
     cList=[self.Test09Client('tcp://localhost:%d'%(fePort),self) for i in range(0,1)]
     wList=[self.Test09Worker('tcp://localhost:%d'%(bePort)) for i in range(0,1)]

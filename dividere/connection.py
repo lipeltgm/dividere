@@ -4,6 +4,36 @@ import time
 import threading
 from zmq.utils.monitor import recv_monitor_message
 from collections import namedtuple
+import socket
+from threading import Lock
+
+class PortManager:
+  '''
+    Singleton supports acquiring an available port for service
+    and communications objects.
+  '''
+  @staticmethod
+  def acquire():
+    '''
+      Find next available port, as per the os, by creating a  
+      temporary socket which is assigned an available port
+      number, then close the socket and return the port for 
+      use.
+      Note, port acquisition should support multi-threaded
+      clients.
+    '''
+    mutex=Lock()
+    with mutex:
+      sock=socket.socket()
+      sock.bind(('',0))
+      retVal=sock.getsockname()[1]
+      sock.close()
+#     for p in range(5000,6000):
+#       sock=socket.socket()
+#       sock.bind(('',p))
+#       retVal=sock.getsockname()[1]
+#       sock.close()
+    return retVal
 
 class Connector:
   '''
