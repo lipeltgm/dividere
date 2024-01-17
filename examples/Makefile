@@ -3,8 +3,26 @@ all:
 video.mp4:
 	${SH} yt-dlp -f mp4 https://www.youtube.com/watch?v=K_7k3fnxPq0 -o $@
 
-setup:
+setup: 
 	${SH} sudo apt-get install -y protobuf-compiler
+
+configYolo: yolov3.cfg yolov3.weights coco.data coco.names
+
+yolov3.cfg:
+	${SH} wget https://raw.githubusercontent.com/pjreddie/darknet/master/cfg/yolov3.cfg
+
+yolov3.weights:
+	${SH} wget https://pjreddie.com/media/files/yolov3.weights
+
+coco.data:
+	${SH} wget https://raw.githubusercontent.com/pjreddie/darknet/master/cfg/coco.data
+	${SH} mkdir -p data/
+	${SH} mv $@ data/
+
+coco.names:
+	${SH} wget https://raw.githubusercontent.com/pjreddie/darknet/master/data/coco.names
+	${SH} mkdir -p data/
+	${SH} mv $@ data/
 
 clientMsgs.proto:
 	${SH} echo "syntax='proto3';" > $@
@@ -41,10 +59,10 @@ clientMsgs.proto:
 %_pb2.py: %.proto
 	${SH} protoc --proto_path=./ --python_out=./ $<
 
-run: clientMsgs_pb2.py
+run: clientMsgs_pb2.py 
 	${SH} ./simplePubSub.py
 	${SH} ./msgReactor.py
-	${SH} ./distYolo.py
+	${SH} ./yoloEx.py
 
 clean:
 	${RM} clientMsgs* 

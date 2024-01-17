@@ -395,6 +395,8 @@ class MpMsgReactor:
     processor cores.  Note, the constructor provides a string list of messaging components
     rather than an actual list of objects because they must be created in the background process
     different than threaded usage.  
+    Derived classes are intended to specialize initialization method that is invoked within the 
+    background process to initialize resources (e.g. def initThread(self))
   '''
   def __init__(self, obj):
     '''
@@ -435,6 +437,8 @@ class MpMsgReactor:
     for e in objList:
       objList_.append(eval(e))
     objList_.append(Subscriber(shutdownEndPt))
+
+    self.initThread()
 
     self.done_ = False
     while not self.done_:
