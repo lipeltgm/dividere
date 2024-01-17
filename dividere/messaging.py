@@ -2,12 +2,12 @@ import logging
 import google.protobuf.symbol_database
 import google.protobuf.descriptor_pool
 import google.protobuf.message_factory
-#from google.protobuf.any_pb2 import Any
 from dividere import MsgLib
 from dividere import connection
 import os
 import threading
 import time
+import multiprocessing
 
 #================================================================================
 #-- Encoder/Decoder class; takes in protobuf message, encloses it in a envelope
@@ -74,7 +74,8 @@ class Publisher:
       Create a publisher connection and encoder
     '''
     #--create pub component and encoder
-    self.pub_=connection.Publisher(endPoint)
+    self.endPoint_=endPoint
+    self.pub_=connection.Publisher(self.endPoint_)
     self.encoder_=ProtoBuffEncoder()
 
   def __del__(self):
@@ -120,7 +121,8 @@ class Subscriber:
       topic=''
     else:
       topic=self.topicId(msgSubList[0])
-    self.sub_=connection.Subscriber(endPoint, topic)
+    self.endPoint_=endPoint
+    self.sub_=connection.Subscriber(self.endPoint_, topic)
     self.decoder_=ProtoBuffDecoder()
     for topicMsg in msgSubList[1:]:
       self.sub_.subscribe(self.topicId(topicMsg))
@@ -160,7 +162,8 @@ class Request:
       Create a request connection and encoder
     '''
     #--create req component and encoder
-    self.sock_=connection.Request(endPoint)
+    self.endPoint_=endPoint
+    self.sock_=connection.Request(self.endPoint_)
     self.encoder_=ProtoBuffEncoder()
     self.decoder_=ProtoBuffDecoder()
 
@@ -207,7 +210,8 @@ class Response:
     '''
        Allocate all necessary resources, socket and encoder/decoder pair.
     '''
-    self.sock_=connection.Response(endPoint)
+    self.endPoint_=endPoint
+    self.sock_=connection.Response(self.endPoint_)
     self.decoder_=ProtoBuffDecoder()
     self.encoder_=ProtoBuffEncoder()
 
@@ -257,7 +261,8 @@ class Dealer:
        pair.  All transported communications will be done in the form of a
        message envelope
     '''
-    self.sock_=connection.Dealer(endPoint)
+    self.endPoint_=endPoint
+    self.sock_=connection.Dealer(self.endPoint_)
     self.decoder_=ProtoBuffDecoder()
     self.encoder_=ProtoBuffEncoder()
 
@@ -311,8 +316,9 @@ class Dealer:
       self.sock_.send(env.SerializeToString())
 
 
-class MsgReactor:
+class MtMsgReactor:
   '''
+    Multi-Threaded Msg Reactor
     Abstraction to support active-thread which listens to a vector of a
     varying consumer messaging objects (e.g. Sub, Response, ...), decoding
     the incoming message and calling a specialized hander method (provided mostly
@@ -367,9 +373,13 @@ class MsgReactor:
         gotMsg=el.wait(1)
         if gotMsg:
           msg=el.recv()
-          msgName=msg.__class__.__name__
-          fx='self.handle%s(el,msg)'%(msgName)
-          eval(fx)
+          if isinstance(msg, tuple):
+            fx='self.handle%s(el,msg[0],msg[1])'%(msg[1].__class__.__name__)
+            eval(fx)
+          else:
+            msgName=msg.__class__.__name__
+            fx='self.handle%s(el,msg)'%(msgName)
+            eval(fx)
 
   def handleShutdownEvent(self,obj,msg):
     '''
@@ -378,3 +388,74 @@ class MsgReactor:
     self.done_=True;
 
 
+class MpMsgReactor:
+  '''
+    Multi-Process Msg Reactor
+    Multi-process (MP) abstraction, rather than multi-threaded, to take full advantage of 
+    processor cores.  Note, the constructor provides a string list of messaging components
+    rather than an actual list of objects because they must be created in the background process
+    different than threaded usage.  
+  '''
+  def __init__(self, obj):
+    '''
+      Initialize necessary components, shutdown pub/sub uses tcp endpoints to support multi-process
+      communications.  
+    '''
+    if isinstance(obj, list):
+      objList=obj
+    else:
+      objList=[obj]
+    shutdownPort=connection.PortManager.acquire()
+    self.shutdownPub_=Publisher('tcp://*:%d'%(shutdownPort))
+    time.sleep(1); #--give time for late joiner
+    self.tid_=multiprocessing.Process(target=self.msgHandler,args=(objList,'tcp://localhost:%d'%(shutdownPort)))
+    self.tid_.start()
+
+  def __del__(self):
+    '''
+      Free resources created by client process
+    '''
+    self.shutdownPub_=None
+
+  def stop(self):
+    '''
+      Signal termination and await process completion.
+    '''
+    self.shutdownPub_.send(MsgLib.ShutdownEvent())
+    self.tid_.join()
+
+  def msgHandler(self,objList,shutdownEndPt):
+    '''
+      Background process callback, iterates over specified message object list
+      looking for available messages, then invokes the associated callback
+      based on message name specialized by the derived class.  Inbound shutdown
+      event is handled by this class, which flags completion of the task.
+    '''
+    objList_=[]
+    for e in objList:
+      objList_.append(eval(e))
+    objList_.append(Subscriber(shutdownEndPt))
+
+    self.done_ = False
+    while not self.done_:
+      for el in objList_:
+        gotMsg=el.wait(1)
+        if gotMsg:
+          msg=el.recv()
+          if isinstance(msg, tuple):
+            fx='self.handle%s(el,msg[0],msg[1])'%(msg[1].__class__.__name__)
+            eval(fx)
+          else:
+            msgName=msg.__class__.__name__
+            fx='self.handle%s(el,msg)'%(msgName)
+            eval(fx)
+    for e in objList_:
+      e=None
+    objList_=None
+
+  def handleShutdownEvent(self,obj,msg):
+    '''
+      Set the done flag, this is done from the thread to avoid need for necessary guards
+    '''
+    self.done_=True;
+    
