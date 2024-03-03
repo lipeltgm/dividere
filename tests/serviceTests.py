@@ -67,6 +67,7 @@ class serviceTests(unittest.TestCase):
 
   def test02(self):
     #--test service re-registration as a result of a terminated/restarted name service
+    logging.info("executing test")
     tid1=threading.Thread(target=self.delayedNameService, args=(0,5.0,))
     tid1.start()
     obj=MyService()

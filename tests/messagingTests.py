@@ -305,7 +305,6 @@ class messagingTests(unittest.TestCase):
     for i in range(0,5):
       req=messagingEncoderTests.msgFactory(TestMsg.testDtMsg01())
       req.field1=i
-      #print("client thread: %s"%(str(threading.get_ident())))
       c.send(req)
       self.assertTrue(c.wait(1000))
       rep=c.recv()
@@ -318,7 +317,6 @@ class messagingTests(unittest.TestCase):
     w=dividere.messaging.Response(endPt)
     while(w.wait(3000)):
       m=w.recv()
-      #print("worker thread: %s"%(str(threading.get_ident())))
       m.field1+=100
       w.send(m)
       logging.debug('sending %s'%(str(m)))

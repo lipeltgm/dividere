@@ -38,6 +38,3 @@ class serviceRegistryTests(unittest.TestCase):
     serviceRegistry.stop()
     time.sleep(3); #--give serviceRegistry a chance to cleanup for future tests
 
-# def test01(self):
-#   m=MsgLib.unregisterService()
-#   print(m.__class__.__name__)

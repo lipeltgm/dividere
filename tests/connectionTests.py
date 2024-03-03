@@ -227,6 +227,7 @@ class connectionTests(unittest.TestCase):
     #--test simple dealer <=> router/dealer <=> dealer configuration
     #== by sending asychronous messages, and confirming ack id matches
     #-- the msg id
+    logging.info("executing test")
     fePort=dividere.connection.PortManager.acquire()
     bePort=dividere.connection.PortManager.acquire()
     c=self.ClientTask('tcp://localhost:%d'%(fePort),self)
@@ -263,6 +264,7 @@ class connectionTests(unittest.TestCase):
     #-- the msg id
     #-- this primarily confirms the response messages are properly routed
     #-- back to the original sender client (ie. route back design works)
+    logging.info("executing test")
     self._test11(1,1)
     self._test11(5,1)
     self._test11(10,1)
@@ -270,3 +272,29 @@ class connectionTests(unittest.TestCase):
     self._test11(5,5)
     self._test11(10,5)
     self._test11(50,20)
+
+  def test12(self):
+    #--test a 'load balancing broker' style use, client(s) attaching to frontend
+    #-- dealers as backend worker(s) with router pair connecting the two
+    #-- have servers return received message and test round trip communications
+    #-- primarily confirms routing is working
+    logging.info("executing test")
+    fePort=5555
+    bePort=5556
+    p=dividere.connection.LoadBalancingBroker2(zmq.ROUTER, fePort, zmq.ROUTER, bePort)
+
+    s=dividere.connection.Dealer('tcp://localhost:%d'%(bePort))
+    s.send(b'\x01')
+
+    c=dividere.connection.Request('tcp://localhost:%d'%(fePort))
+    testMsg=b'some message'
+    c.send(testMsg)
+
+    b=s.recv()
+    print(b)
+    s.send(b)
+
+    msg=c.recv()
+    print('client received: %s'%(msg))
+
+    p.stop()

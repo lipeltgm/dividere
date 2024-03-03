@@ -1,6 +1,5 @@
 .PHONY: examples
-#all: docs msg test examples
-all: docs msg test 
+all: docs msg test examples
 
 #--os version specific setup instructions
 devSetup: devSetup-$(shell uname -v | cut -f 2- -d '~' | cut -f 1 -d '-') protobuf
