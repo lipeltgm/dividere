@@ -492,14 +492,14 @@ class LoadBalancingBroker:
 
 
 class LoadBalancingBroker2:
-  HEARTBEAT_LIVENESS = 30     # 3..5 is reasonable
-  HEARTBEAT_INTERVAL = 1.0   # Seconds
-  PPP_READY = b"\x01"      # Signals worker is ready
-  PPP_HEARTBEAT = b"\x02"  # Signals worker heartbeat
   class Worker(object):
-      def __init__(self, address):
-          self.address = address
-          self.expiry = time.time() + HEARTBEAT_INTERVAL * HEARTBEAT_LIVENESS
+    HEARTBEAT_LIVENESS = 30     # 3..5 is reasonable
+    HEARTBEAT_INTERVAL = 1.0   # Seconds
+    PPP_READY = b"\x01"      # Signals worker is ready
+    PPP_HEARTBEAT = b"\x02"  # Signals worker heartbeat
+    def __init__(self, address):
+        self.address = address
+        self.expiry = time.time() + self.HEARTBEAT_INTERVAL * self.HEARTBEAT_LIVENESS
   
   class WorkerQueue(object):
       def __init__(self):
@@ -551,7 +551,7 @@ class LoadBalancingBroker2:
     poll_both.register(backend, zmq.POLLIN)
     
     workers = self.WorkerQueue()
-    heartbeat_at = time.time() + self.HEARTBEAT_INTERVAL
+    heartbeat_at = time.time() + self.Worker.HEARTBEAT_INTERVAL
 
     while not self.done_:
       logging.debug("running")
@@ -560,7 +560,7 @@ class LoadBalancingBroker2:
           poller = poll_both
       else:
           poller = poll_workers
-      socks = dict(poller.poll(self.HEARTBEAT_INTERVAL * 1000))
+      socks = dict(poller.poll(self.Worker.HEARTBEAT_INTERVAL * 1000))
   
       if socks.get(backend) == zmq.POLLIN:
           # Use worker address for LRU routing
@@ -575,7 +575,7 @@ class LoadBalancingBroker2:
           # Validate control message, or return reply to client
           msg = frames[1:]
           if len(msg) == 1:
-              if msg[0] not in (self.PPP_READY, self.PPP_HEARTBEAT):
+              if msg[0] not in (self.Worker.PPP_READY, self.Worker.PPP_HEARTBEAT):
                   print("E: Invalid message from worker: %s" % msg)
           else:
               print('sending to fe: %s'%(msg))
