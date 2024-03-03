@@ -200,7 +200,7 @@ class MpYoloSolver():
     print("terminating")
 
 #-----main-----
-vidFile='clip03.mp4'
+vidFile='clip.mp4'
 Ts=[]
 if True:
   obj=YoloSolver()

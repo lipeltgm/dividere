@@ -12,6 +12,9 @@ class MyMsgReactor(dividere.messaging.MtMsgReactor):
   def handleMsg02(self, obj, msg):
     print("got msg02 msg: %s"%(str(msg)))
 
+  def initThread(self):
+    pass
+
 class MyMsgReactor(dividere.messaging.MpMsgReactor):
   def handleMsg01(self, obj, msg):
     print("got msg01 msg: %s"%(str(msg)))
@@ -21,6 +24,10 @@ class MyMsgReactor(dividere.messaging.MpMsgReactor):
 
   def handleMsg02(self, obj, msg):
     print("got msg02 msg: %s"%(str(msg)))
+
+  def initThread(self):
+    pass
+
 
 def test00():
   fePort=dividere.connection.PortManager.acquire()

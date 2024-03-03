@@ -1,5 +1,6 @@
 .PHONY: examples
-all: docs msg test examples
+#all: docs msg test examples
+all: docs msg test 
 
 #--os version specific setup instructions
 devSetup: devSetup-$(shell uname -v | cut -f 2- -d '~' | cut -f 1 -d '-') protobuf
@@ -45,7 +46,7 @@ protobuf:
 	${SH} cd temp/protobuf-3.19.4; sudo make install; sudo ldconfig
 	${SH} touch $@
 
-examples:
+examples: msg
 	${SH} cd examples; make run
 
 clean:
@@ -56,4 +57,4 @@ clean:
 	${RM} -rf ./dividere/MsgLib*py
 	${SH} cd doc; make clean
 	${RM} -rf ./temp/
-	${SH} cd ./examples/; make clean
+	${SH} cd ./examples/; make clean realclean

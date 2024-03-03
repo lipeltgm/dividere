@@ -99,6 +99,7 @@ class Connector:
     disable monitoring, wait for monitoring thread completes,
     close the socket and close the context
     '''
+    self.socket_.setsockopt(zmq.LINGER, 0)
     self.socket_.disable_monitor()
     if self.tid_: self.tid_.join() 
     self.socket_.close()

@@ -3,6 +3,9 @@ all:
 video.mp4:
 	${SH} yt-dlp -f mp4 https://www.youtube.com/watch?v=K_7k3fnxPq0 -o $@
 
+clip.mp4: video.mp4
+	${SH} ffmpeg -i $< -t 1 $@
+
 setup: 
 	${SH} sudo apt-get install -y protobuf-compiler
 
@@ -59,7 +62,10 @@ clientMsgs.proto:
 %_pb2.py: %.proto
 	${SH} protoc --proto_path=./ --python_out=./ $<
 
-run: clientMsgs_pb2.py 
+mklink:
+	${SH} ln -sf ../dividere/
+
+run: mklink clientMsgs_pb2.py clip.mp4 configYolo
 	${SH} ./simplePubSub.py
 	${SH} ./msgReactor.py
 	${SH} ./yoloEx.py
@@ -68,4 +74,9 @@ clean:
 	${RM} clientMsgs* 
 	${RM} -rf ./__pycache__/
 	${RM} *.jpg
+
+realclean:
+	${RM} -rf  video.mp4 yolov3.* clip.mp4 darknet/ data/ 
+	${RM} ./dividere
+
 
