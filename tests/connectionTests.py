@@ -353,3 +353,13 @@ class connectionTests(unittest.TestCase):
     self.assertTrue(c.recv() == testMsg)
 
     p.stop()
+
+  def test14(self):
+    fePort=5555
+    bePort=5556
+    p=dividere.connection.LoadBalancingPattern.Broker(zmq.ROUTER, fePort, zmq.ROUTER, bePort)
+    w=dividere.connection.LoadBalancingPattern.Worker('tcp://localhost:%d'%(bePort))
+    time.sleep(2)
+    w.stop()
+    time.sleep(10)
+    p.stop()

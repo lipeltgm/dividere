@@ -629,11 +629,6 @@ class LoadBalancingPattern:
         self.updateWorker(id)
       else:
         print("forwarding to frontend: %s"%(frames))
-  #     print('here-0')
-  #     self.frontend.send_multipart(id,zmq.SNDMORE)
-  #     print('here-1')
-  #     self.frontend.send_multipart(frames[1:][0])
-  #     print('here-2')
         self.frontend.send_multipart(frames[1:])
   
     def heartbeatServers(self):
@@ -686,3 +681,29 @@ class LoadBalancingPattern:
       self.backend.close()
       context.term()
   
+  class Worker:
+    def __init__(self, endPt):
+      self.done_=False
+      self.tid_ = threading.Thread(target=self.run, args=(endPt,))
+      self.tid_.start()
+  
+    def stop(self):
+      self.done_=True
+      self.tid_.join()
+
+    def run(self, endPt):
+      sock=Dealer(endPt)
+      sock.send(LoadBalancingPattern.Broker.ServerRegisterMsg)
+      while not self.done_:
+        if sock.wait(1000):
+          msg=sock.recv()
+          print("got %s"%(msg))
+          if msg in [LoadBalancingPattern.Broker.HeartbeatMsg]:
+            sock.send(msg)
+          else:
+            self.handle(msg)
+
+
+
+
+
