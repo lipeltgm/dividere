@@ -598,6 +598,91 @@ class LoadBalancingBroker2:
     context.term()
 
     
-#   
-#   while True:
-#   
+class LoadBalancingPattern:
+  class Broker:
+    ServerRegisterMsg=b'\x01'
+    HeartbeatMsg=b'\x02'
+    HeartbeatRate=3.0
+    def __init__(self, feSockType, feSockPort, beSockType, beSockPort):
+      self.done_ = False
+      self.queue_=collections.OrderedDict()
+      self.frontEnd_={"sockType":feSockType, "endPt":"tcp://*:%d"%(feSockPort)}
+      self.backEnd_={"sockType":beSockType, "endPt":"tcp://*:%d"%(beSockPort)}
+      self.tid_ = threading.Thread(target=self.run, args=())
+      self.tid_.start()
+  
+    def stop(self):
+      self.done_=True
+      self.tid_.join()
+  
+    def handleFeMsg(self,msg):
+      print("handling fe msg")
+      serverId=self.selectWorker()
+      msg.insert(0,serverId)
+      self.backend.send_multipart(msg)
+  
+    def handleBeMsg(self,frames):
+      #print("handling be %s"%(frames))
+      id=frames[0]
+      msg=frames[1:][0]
+      if msg in [self.ServerRegisterMsg, self.HeartbeatMsg]:
+        self.updateWorker(id)
+      else:
+        print("forwarding to frontend: %s"%(frames))
+  #     print('here-0')
+  #     self.frontend.send_multipart(id,zmq.SNDMORE)
+  #     print('here-1')
+  #     self.frontend.send_multipart(frames[1:][0])
+  #     print('here-2')
+        self.frontend.send_multipart(frames[1:])
+  
+    def heartbeatServers(self):
+      print("servers: %d"%(len(self.queue_.keys())))
+      tooLate=datetime.datetime.now()-datetime.timedelta(seconds=self.HeartbeatRate*2)
+      deadServers=[]
+      for id,ts in self.queue_.items():
+        if ts < tooLate:
+          print("dead server: %s"%(id))
+          deadServers.append(id)
+      for e in deadServers:
+        self.queue_.pop(e, None)
+  
+      now=datetime.datetime.now()
+      for id,ts in self.queue_.items():
+        if ts < now:
+          hb=[id,self.HeartbeatMsg]
+          self.backend.send_multipart(hb)
+  
+    def updateWorker(self, workerId):
+      #print("updating worker queue %s"%(workerId))
+      self.queue_[workerId] = datetime.datetime.now() + datetime.timedelta(seconds=self.HeartbeatRate)
+  
+    def selectWorker(self):
+      workerId, ts = self.queue_.popitem(False)
+      return workerId
+  
+    def run(self):
+      context = zmq.Context(1)
+      self.frontend = context.socket(self.frontEnd_['sockType']) 
+      self.backend = context.socket(self.backEnd_['sockType']) 
+      self.frontend.bind(self.frontEnd_['endPt']) # For clients
+      self.backend.bind(self.backEnd_['endPt']) # For clients
+      poller = zmq.Poller()
+      poller.register(self.frontend, zmq.POLLIN)
+      poller.register(self.backend, zmq.POLLIN)
+  
+      while not self.done_:
+        socks = dict(poller.poll(int(self.HeartbeatRate*1000)))
+        if socks.get(self.frontend) == zmq.POLLIN:
+          print("fe msg")
+          frames = self.frontend.recv_multipart()
+          self.handleFeMsg(frames)
+        if socks.get(self.backend) == zmq.POLLIN:
+          print("be msg")
+          frames = self.backend.recv_multipart()
+          self.handleBeMsg(frames)
+        self.heartbeatServers()
+      self.frontend.close()
+      self.backend.close()
+      context.term()
+  
