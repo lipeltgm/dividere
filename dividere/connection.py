@@ -411,199 +411,211 @@ class Dealer(Connector):
     gotMsg=self.socket_ in dict(ev)
     return gotMsg
 
-class LoadBalancingBroker:
-  def __init__(self, feSockType, feSockPort, beSockType, beSockPort):
-    self.done_ = False
-    self.frontEnd_={"sockType":feSockType, "endPt":"tcp://*:%d"%(feSockPort)}
-    self.backEnd_={"sockType":beSockType, "endPt":"tcp://*:%d"%(beSockPort)}
-    self.tid_ = threading.Thread(target=self.run, args=())
-    self.tid_.start()
-
-  def stop(self):
-    self.done_=True
-    self.tid_.join()
-
-# def parseMessage(self, msgPayload):
-#   B=b''.join(msgPayload)
-#   env=MsgLib.msgEnvelope()
-#   env.ParseFromString(B)
-#   retVal=self.decoder.decode(env)
-#   return retVal
-
-  @classmethod
-  def updateServerQueue(cls, queue,id):
-    HbRateSecs=15
-    queue[id]=datetime.datetime.now()+datetime.timedelta(seconds=HbRateSecs)
-    logging.debug("adding/updating server %s"%(id))
-
-  @classmethod
-  def nextAvailServer(cls, queue):
-    cls.groomServerQueue(queue)
-    toId, worker = queue.popitem(False)
-    queue[toId]=worker
-    return toId
-
-  @classmethod
-  def groomServerQueue(cls, queue):
-    HbRateSecs=15
-    currentTs=datetime.datetime.now()
-    for id,ts in queue.items():
-      if currentTs > ts:
-        logging.debug("removing dormant server %s"%(id))
-        queue.pop(id)
-
-  def run(self):
-    #  run ~/zmqReliableRR/foo.py + this test
-    context = zmq.Context(1)
-    frontend = context.socket(self.frontEnd_['sockType']) 
-    frontend.bind(self.frontEnd_['endPt'])
-    backend = context.socket(self.backEnd_['sockType'])  
-    backend.bind(self.backEnd_['endPt'])
-#   self.decoder=messaging.ProtoBuffDecoder()
-    queue=collections.OrderedDict()
-
-    poller = zmq.Poller()
-    poller.register(frontend, zmq.POLLIN)
-    poller.register(backend, zmq.POLLIN)
-    while not self.done_:
-      socks = dict(poller.poll(1000))
-
-      if socks.get(backend) == zmq.POLLIN:
-        frames = backend.recv_multipart()
-        fromId=frames[0]
-        self.updateServerQueue(queue,fromId)
-        msgPayload=frames[1:]
-#       logging.debug("server %s sent %s"%(fromId, self.parseMessage(msgPayload)))
-        frontend.send_multipart(msgPayload)
-        self.updateServerQueue(queue, fromId)
-
-      if socks.get(frontend) == zmq.POLLIN:
-        frames = frontend.recv_multipart()
-        fromId=frames[0]
-        msgPayload=frames[1:]
-        serverId=self.nextAvailServer(queue)
-#       logging.debug("client sent %s, routing to %s"%(self.parseMessage(msgPayload), serverId))
-        msgPayload.insert(0,serverId)
-        backend.send_multipart(msgPayload)
-
-    frontend.close()
-    backend.close()
-    context.term()
-
-
-class LoadBalancingBroker2:
-  class Worker(object):
-    HEARTBEAT_LIVENESS = 30     # 3..5 is reasonable
-    HEARTBEAT_INTERVAL = 1.0   # Seconds
-    PPP_READY = b"\x01"      # Signals worker is ready
-    PPP_HEARTBEAT = b"\x02"  # Signals worker heartbeat
-    def __init__(self, address):
-        self.address = address
-        self.expiry = time.time() + self.HEARTBEAT_INTERVAL * self.HEARTBEAT_LIVENESS
-  
-  class WorkerQueue(object):
-      def __init__(self):
-          self.queue = collections.OrderedDict()
-  
-      def ready(self, worker):
-          self.queue.pop(worker.address, None)
-          self.queue[worker.address] = worker
-  
-      def purge(self):
-          """Look for & kill expired workers."""
-          t = time.time()
-          expired = []
-          for address, worker in self.queue.items():
-              if t > worker.expiry:  # Worker expired
-                  expired.append(address)
-          for address in expired:
-              print("W: Idle worker expired: %s" % address)
-              self.queue.pop(address, None)
-  
-      def next(self):
-          address, worker = self.queue.popitem(False)
-          return address
-   
-  def __init__(self, feSockType, feSockPort, beSockType, beSockPort):
-    self.done_ = False
-    self.frontEnd_={"sockType":feSockType, "endPt":"tcp://*:%d"%(feSockPort)}
-    self.tid_ = threading.Thread(target=self.run, args=())
-    self.tid_.start()
-
-  def stop(self):
-    self.done_=True
-    self.tid_.join()
-
-  def run(self):
-    #  Paranoid Pirate Protocol constants
-
-    context = zmq.Context(1)
-    frontend = context.socket(zmq.ROUTER) # ROUTER
-    backend = context.socket(zmq.ROUTER)  # ROUTER
-    frontend.bind("tcp://*:5555") # For clients
-    backend.bind("tcp://*:5556")  # For workers
-
-    poll_workers = zmq.Poller()
-    poll_workers.register(backend, zmq.POLLIN)
-    
-    poll_both = zmq.Poller()
-    poll_both.register(frontend, zmq.POLLIN)
-    poll_both.register(backend, zmq.POLLIN)
-    
-    workers = self.WorkerQueue()
-    heartbeat_at = time.time() + self.Worker.HEARTBEAT_INTERVAL
-
-    while not self.done_:
-      logging.debug("running")
-      time.sleep(1)
-      if len(workers.queue) > 0:
-          poller = poll_both
-      else:
-          poller = poll_workers
-      socks = dict(poller.poll(self.Worker.HEARTBEAT_INTERVAL * 1000))
-  
-      if socks.get(backend) == zmq.POLLIN:
-          # Use worker address for LRU routing
-          frames = backend.recv_multipart()
-          print('backend got: %s'%(str(frames)))
-          if not frames:
-              break
-  
-          address = frames[0]
-          workers.ready(self.Worker(address))
-  
-          # Validate control message, or return reply to client
-          msg = frames[1:]
-          if len(msg) == 1:
-              if msg[0] not in (self.Worker.PPP_READY, self.Worker.PPP_HEARTBEAT):
-                  print("E: Invalid message from worker: %s" % msg)
-          else:
-              print('sending to fe: %s'%(msg))
-              frontend.send_multipart(msg)
-  
-          # Send heartbeats to idle workers if it's time
-      if socks.get(frontend) == zmq.POLLIN:
-          frames = frontend.recv_multipart()
-          print('frontend got: %s'%(str(frames)))
-  
-          frames.insert(0, workers.next())
-          print('sending to be: %s'%(frames))
-          backend.send_multipart(frames)
-  
-  
-      workers.purge()
-
-    backend.close()
-    frontend.close()
-    context.term()
+##class LoadBalancingBroker:
+##  def __init__(self, feSockType, feSockPort, beSockType, beSockPort):
+##    self.done_ = False
+##    self.frontEnd_={"sockType":feSockType, "endPt":"tcp://*:%d"%(feSockPort)}
+##    self.backEnd_={"sockType":beSockType, "endPt":"tcp://*:%d"%(beSockPort)}
+##    self.tid_ = threading.Thread(target=self.run, args=())
+##    self.tid_.start()
+##
+##  def stop(self):
+##    self.done_=True
+##    self.tid_.join()
+##
+### def parseMessage(self, msgPayload):
+###   B=b''.join(msgPayload)
+###   env=MsgLib.msgEnvelope()
+###   env.ParseFromString(B)
+###   retVal=self.decoder.decode(env)
+###   return retVal
+##
+##  @classmethod
+##  def updateServerQueue(cls, queue,id):
+##    HbRateSecs=15
+##    queue[id]=datetime.datetime.now()+datetime.timedelta(seconds=HbRateSecs)
+##    logging.debug("adding/updating server %s"%(id))
+##
+##  @classmethod
+##  def nextAvailServer(cls, queue):
+##    cls.groomServerQueue(queue)
+##    toId, worker = queue.popitem(False)
+##    queue[toId]=worker
+##    return toId
+##
+##  @classmethod
+##  def groomServerQueue(cls, queue):
+##    HbRateSecs=15
+##    currentTs=datetime.datetime.now()
+##    for id,ts in queue.items():
+##      if currentTs > ts:
+##        logging.debug("removing dormant server %s"%(id))
+##        queue.pop(id)
+##
+##  def run(self):
+##    #  run ~/zmqReliableRR/foo.py + this test
+##    context = zmq.Context(1)
+##    frontend = context.socket(self.frontEnd_['sockType']) 
+##    frontend.bind(self.frontEnd_['endPt'])
+##    backend = context.socket(self.backEnd_['sockType'])  
+##    backend.bind(self.backEnd_['endPt'])
+###   self.decoder=messaging.ProtoBuffDecoder()
+##    queue=collections.OrderedDict()
+##
+##    poller = zmq.Poller()
+##    poller.register(frontend, zmq.POLLIN)
+##    poller.register(backend, zmq.POLLIN)
+##    while not self.done_:
+##      socks = dict(poller.poll(1000))
+##
+##      if socks.get(backend) == zmq.POLLIN:
+##        frames = backend.recv_multipart()
+##        fromId=frames[0]
+##        self.updateServerQueue(queue,fromId)
+##        msgPayload=frames[1:]
+###       logging.debug("server %s sent %s"%(fromId, self.parseMessage(msgPayload)))
+##        frontend.send_multipart(msgPayload)
+##        self.updateServerQueue(queue, fromId)
+##
+##      if socks.get(frontend) == zmq.POLLIN:
+##        frames = frontend.recv_multipart()
+##        fromId=frames[0]
+##        msgPayload=frames[1:]
+##        serverId=self.nextAvailServer(queue)
+###       logging.debug("client sent %s, routing to %s"%(self.parseMessage(msgPayload), serverId))
+##        msgPayload.insert(0,serverId)
+##        backend.send_multipart(msgPayload)
+##
+##    frontend.close()
+##    backend.close()
+##    context.term()
+##
+##
+##class LoadBalancingBroker2:
+##  class Worker(object):
+##    HEARTBEAT_LIVENESS = 30     # 3..5 is reasonable
+##    HEARTBEAT_INTERVAL = 1.0   # Seconds
+##    PPP_READY = b"\x01"      # Signals worker is ready
+##    PPP_HEARTBEAT = b"\x02"  # Signals worker heartbeat
+##    def __init__(self, address):
+##        self.address = address
+##        self.expiry = time.time() + self.HEARTBEAT_INTERVAL * self.HEARTBEAT_LIVENESS
+##  
+##  class WorkerQueue(object):
+##      def __init__(self):
+##          self.queue = collections.OrderedDict()
+##  
+##      def ready(self, worker):
+##          self.queue.pop(worker.address, None)
+##          self.queue[worker.address] = worker
+##  
+##      def purge(self):
+##          """Look for & kill expired workers."""
+##          t = time.time()
+##          expired = []
+##          for address, worker in self.queue.items():
+##              if t > worker.expiry:  # Worker expired
+##                  expired.append(address)
+##          for address in expired:
+##              print("W: Idle worker expired: %s" % address)
+##              self.queue.pop(address, None)
+##  
+##      def next(self):
+##          address, worker = self.queue.popitem(False)
+##          return address
+##   
+##  def __init__(self, feSockType, feSockPort, beSockType, beSockPort):
+##    self.done_ = False
+##    self.frontEnd_={"sockType":feSockType, "endPt":"tcp://*:%d"%(feSockPort)}
+##    self.tid_ = threading.Thread(target=self.run, args=())
+##    self.tid_.start()
+##
+##  def stop(self):
+##    self.done_=True
+##    self.tid_.join()
+##
+##  def run(self):
+##    #  Paranoid Pirate Protocol constants
+##
+##    context = zmq.Context(1)
+##    frontend = context.socket(zmq.ROUTER) # ROUTER
+##    backend = context.socket(zmq.ROUTER)  # ROUTER
+##    frontend.bind("tcp://*:5555") # For clients
+##    backend.bind("tcp://*:5556")  # For workers
+##
+##    poll_workers = zmq.Poller()
+##    poll_workers.register(backend, zmq.POLLIN)
+##    
+##    poll_both = zmq.Poller()
+##    poll_both.register(frontend, zmq.POLLIN)
+##    poll_both.register(backend, zmq.POLLIN)
+##    
+##    workers = self.WorkerQueue()
+##    heartbeat_at = time.time() + self.Worker.HEARTBEAT_INTERVAL
+##
+##    while not self.done_:
+##      logging.debug("running")
+##      time.sleep(1)
+##      if len(workers.queue) > 0:
+##          poller = poll_both
+##      else:
+##          poller = poll_workers
+##      socks = dict(poller.poll(self.Worker.HEARTBEAT_INTERVAL * 1000))
+##  
+##      if socks.get(backend) == zmq.POLLIN:
+##          # Use worker address for LRU routing
+##          frames = backend.recv_multipart()
+##          print('backend got: %s'%(str(frames)))
+##          if not frames:
+##              break
+##  
+##          address = frames[0]
+##          workers.ready(self.Worker(address))
+##  
+##          # Validate control message, or return reply to client
+##          msg = frames[1:]
+##          if len(msg) == 1:
+##              if msg[0] not in (self.Worker.PPP_READY, self.Worker.PPP_HEARTBEAT):
+##                  print("E: Invalid message from worker: %s" % msg)
+##          else:
+##              print('sending to fe: %s'%(msg))
+##              frontend.send_multipart(msg)
+##  
+##          # Send heartbeats to idle workers if it's time
+##      if socks.get(frontend) == zmq.POLLIN:
+##          frames = frontend.recv_multipart()
+##          print('frontend got: %s'%(str(frames)))
+##  
+##          frames.insert(0, workers.next())
+##          print('sending to be: %s'%(frames))
+##          backend.send_multipart(frames)
+##  
+##  
+##      workers.purge()
+##
+##    backend.close()
+##    frontend.close()
+##    context.term()
 
     
 class LoadBalancingPattern:
+  '''
+    Load balancing pattern; broker, worker, client
+  '''
   class Broker:
+    '''
+      Load balancing broker, workers register to backend port, clients through
+      frontend.  Broker routes in round-robin fashion.  Broker and workers
+      exchange heartbeats to recover when worker, or broker, fails and restarts.
+    '''
     ServerRegisterMsg=b'\x01'
     HeartbeatMsg=b'\x02'
     HeartbeatRate=3.0
     def __init__(self, feSockType, feSockPort, beSockType, beSockPort):
+      '''
+        Active object, all major initialization and processing done in
+        the background thread.  
+      '''
       self.done_ = False
       self.queue_=collections.OrderedDict()
       self.frontEnd_={"sockType":feSockType, "endPt":"tcp://*:%d"%(feSockPort)}
@@ -612,16 +624,29 @@ class LoadBalancingPattern:
       self.tid_.start()
   
     def stop(self):
+      '''
+        Signal thread to stop, then wait for it to complete.
+      '''
       self.done_=True
       self.tid_.join()
   
     def handleFeMsg(self,msg):
+      '''
+        Process message received from front-end socket.
+        Select a server and route the message to the server for processing.
+      '''
       print("handling fe msg")
       serverId=self.selectWorker()
       msg.insert(0,serverId)
       self.backend.send_multipart(msg)
   
     def handleBeMsg(self,frames):
+      '''
+        Process message received from backend-end socket.
+        If the inbound message is a heartbeat or registration update the
+        server table to indicate a new/existing available server.
+        If an app message, route back thru front-end socket.
+      '''
       #print("handling be %s"%(frames))
       id=frames[0]
       msg=frames[1:][0]
@@ -632,6 +657,13 @@ class LoadBalancingPattern:
         self.frontend.send_multipart(frames[1:])
   
     def heartbeatServers(self):
+      '''
+        Iterate thru existing server table, if we haven't received a message
+        from a server send a heartbeat to it.  The server will ping-pong the 
+        message back resulting in a refreshed table entry.  Application messages
+        should also update the server table in leu of a heartbeat message 
+        (reducing the need for heartbeats messages)
+      '''
       print("servers: %d"%(len(self.queue_.keys())))
       tooLate=datetime.datetime.now()-datetime.timedelta(seconds=self.HeartbeatRate*2)
       deadServers=[]
@@ -649,14 +681,25 @@ class LoadBalancingPattern:
           self.backend.send_multipart(hb)
   
     def updateWorker(self, workerId):
+      '''
+        Update the worker with new heartbeat expiration time
+      '''
       #print("updating worker queue %s"%(workerId))
       self.queue_[workerId] = datetime.datetime.now() + datetime.timedelta(seconds=self.HeartbeatRate)
   
     def selectWorker(self):
+      '''
+        Return the next available worker, round-robin style
+      '''
       workerId, ts = self.queue_.popitem(False)
       return workerId
   
     def run(self):
+      '''
+        Initialize all sockets, wait for an incoming message, process front-end or
+        back-end messages.  After processing the message, send heartbeat messages
+        to expired servers to confirm they are still available.
+      '''
       context = zmq.Context(1)
       self.frontend = context.socket(self.frontEnd_['sockType']) 
       self.backend = context.socket(self.backEnd_['sockType']) 
@@ -682,16 +725,33 @@ class LoadBalancingPattern:
       context.term()
   
   class Worker:
+    '''
+      Worker, active object, connects to broker and maintains heartbeating protocol.
+      Specialization is intended by deriving from this abstract class.
+    '''
     def __init__(self, endPt):
+      '''
+        Initialize all resources, all resources and processing is done in background 
+        thread
+      '''
       self.done_=False
       self.tid_ = threading.Thread(target=self.run, args=(endPt,))
       self.tid_.start()
   
     def stop(self):
+      '''
+        Signal background thread to terminate and wait for it to complete
+      '''
       self.done_=True
       self.tid_.join()
 
     def run(self, endPt):
+      '''
+        Initialize socket and send registration to join the broker server table,
+        then enter main loop.
+        If inbound message is incoming heartbeat, ping-pong it back, if it's a
+        application message 'handle' it (specialized in derived class)
+      '''
       sock=Dealer(endPt)
       sock.send(LoadBalancingPattern.Broker.ServerRegisterMsg)
       while not self.done_:

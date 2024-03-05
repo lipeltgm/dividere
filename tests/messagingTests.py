@@ -6,6 +6,7 @@ import random
 import uuid
 import time
 import threading
+import zmq
 
 class messagingEncoderTests(unittest.TestCase):
   @staticmethod
@@ -123,6 +124,18 @@ class messagingEncoderTests(unittest.TestCase):
     #-- message field population
     fx='messagingEncoderTests.%sCreator()'%(msg.__class__.__name__)
     return eval(fx)
+
+  @staticmethod
+  def allMsgs():
+    retVal= [TestMsg.testDtMsg01(), TestMsg.testDtMsg02(), 
+             TestMsg.testDtMsg03(), TestMsg.testDtMsg04(), 
+             TestMsg.testDtMsg05(), TestMsg.testDtMsg06(), 
+             TestMsg.testDtMsg07(), TestMsg.testDtMsg08(), 
+             TestMsg.testDtMsg09(), TestMsg.testDtMsg10(), 
+             TestMsg.testDtMsg11(), TestMsg.testDtMsg12(), 
+             TestMsg.testDtMsg13(), TestMsg.testDtMsg14(), 
+             TestMsg.testDtMsg15(), TestMsg.testNestedMsg01()]
+    return retVal
 
   def test00(self):
     #--encode/decode a simple message and confirm the decoded
@@ -463,3 +476,25 @@ class messagingTests(unittest.TestCase):
     self._test09(1,5)
     self._test09(10,50)
     self._test09(50,10)
+
+  def test10(self):
+    fePort=dividere.connection.PortManager.acquire()
+    bePort=dividere.connection.PortManager.acquire()
+    p=dividere.connection.LoadBalancingPattern.Broker(zmq.ROUTER, fePort, zmq.ROUTER, bePort)
+
+    for msgTemplate in messagingEncoderTests.allMsgs():
+      msg=messagingEncoderTests.msgFactory(msgTemplate)
+      c=dividere.messaging.Request('tcp://localhost:%d'%(fePort))
+      s=dividere.messaging.Dealer('tcp://localhost:%d'%(bePort))
+      s.sock_.send(dividere.connection.LoadBalancingPattern.Broker.ServerRegisterMsg)
+      time.sleep(1)
+    
+      c.send(msg)
+      while(s.wait(1000)):
+        m=s.recv()
+        s.send(m)
+      reply=c.recv()
+      self.assertTrue(reply==msg)
+
+    p.stop()
+
