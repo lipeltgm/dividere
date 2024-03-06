@@ -273,67 +273,16 @@ class connectionTests(unittest.TestCase):
     self._test11(10,5)
     self._test11(50,20)
 
-##  def test12(self):
-##    #--test a 'load balancing broker' style use, client(s) attaching to frontend
-##    #-- dealers as backend worker(s) with router pair connecting the two
-##    #-- have servers return received message and test round trip communications
-##    #-- primarily confirms routing is working
-##    logging.info("executing test")
-##    fePort=5555
-##    bePort=5556
-##    p=dividere.connection.LoadBalancingBroker2(zmq.ROUTER, fePort, zmq.ROUTER, bePort)
-##
-##    s=dividere.connection.Dealer('tcp://localhost:%d'%(bePort))
-##    s.send(b'\x01')
-##
-##    c=dividere.connection.Request('tcp://localhost:%d'%(fePort))
-##    testMsg=b'some message'
-##    c.send(testMsg)
-##
-##    b=s.recv()
-##    print(b)
-##    s.send(b)
-##
-##    msg=c.recv()
-##    print('client received: %s'%(msg))
-##
-##    p.stop()
-##
-##  def _test12(self,N):
-##    #--test a 'load balancing broker' style use, client(s) attaching to frontend
-##    #-- dealers as backend worker(s) with router pair connecting the two
-##    #-- have servers return received message and test round trip communications
-##    #-- primarily confirms routing is working
-##    logging.info("executing test")
-##    fePort=5555
-##    bePort=5556
-##    p=dividere.connection.LoadBalancingBroker2(zmq.ROUTER, fePort, zmq.ROUTER, bePort)
-##
-##    sList=[dividere.connection.Dealer('tcp://localhost:%d'%(bePort)) for i in range(0,N)]
-##    for s in sList:
-##      s.send(b'\x01')
-##
-##    cList=[dividere.connection.Request('tcp://localhost:%d'%(fePort)) for i in range(0,N)]
-##    testMsg=b'some message'
-##    for c in cList:
-##      c.send(testMsg)
-##
-##    b=s.recv()
-##    print(b)
-##    s.send(b)
-##
-##    msg=c.recv()
-##    print('client received: %s'%(msg))
-##
-##    p.stop()
-##
-##  def test12b(self):
-##    self._test12(1)
-##    self._test12(2)
-
-  def test13(self):
-    fePort=5555
-    bePort=5556
+  def test12(self):
+    #--Perform simple test using load balancing pattern routing via sockets,
+    #-- create client request socket, server dealer socket, register the dealer
+    #-- and then send client request, have server bounce back the received message
+    #-- which allows testing round-trip routing; client-server-client
+    logging.info("executing test")
+    fePort=dividere.connection.PortManager.acquire()
+    bePort=dividere.connection.PortManager.acquire()
+#   fePort=5555
+#   bePort=5556
     p=dividere.connection.LoadBalancingPattern.Broker(zmq.ROUTER, fePort, zmq.ROUTER, bePort)
     s=dividere.connection.Dealer('tcp://localhost:%d'%(bePort))
     s.send(dividere.connection.LoadBalancingPattern.Broker.ServerRegisterMsg)
@@ -343,10 +292,10 @@ class connectionTests(unittest.TestCase):
     testMsg=b'some test message'
     c.send(testMsg)
 
-    #--emulate server ping-bonging received msgs
+    #--emulate server ping-ponging received msgs
     while s.wait(1000):
       msg=s.recv()
-      print(msg)
+      logging.debug('server got %s'%(str(msg)))
       s.send(msg)
 
     self.assertTrue(c.wait(2000))
@@ -354,12 +303,25 @@ class connectionTests(unittest.TestCase):
 
     p.stop()
 
-  def test14(self):
-    fePort=5555
-    bePort=5556
+  def test13(self):
+    #--manual/debugging test, connect worker and broker, let them hb each other for a bit
+    #-- then stop worker and confirm the broker detects the dead worker
+    logging.info("executing test")
+    fePort=dividere.connection.PortManager.acquire()
+    bePort=dividere.connection.PortManager.acquire()
+
     p=dividere.connection.LoadBalancingPattern.Broker(zmq.ROUTER, fePort, zmq.ROUTER, bePort)
     w=dividere.connection.LoadBalancingPattern.Worker('tcp://localhost:%d'%(bePort))
-    time.sleep(2)
+    time.sleep(dividere.connection.LoadBalancingPattern.Broker.HeartbeatRate*3)
     w.stop()
-    time.sleep(10)
+    time.sleep(dividere.connection.LoadBalancingPattern.Broker.HeartbeatRate*3)
     p.stop()
+
+  def test14(self):
+    fePort=5555
+    c=dividere.connection.LoadBalancingPattern.Client('tcp://localhost:%d'%(fePort))
+    testMsg=b'some test message'
+    c.send(testMsg)
+    timeOutMs=3000
+    m=c.recv(timeOutMs)
+    self.assertTrue(m==None)

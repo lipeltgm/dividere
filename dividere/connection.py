@@ -761,9 +761,53 @@ class LoadBalancingPattern:
           if msg in [LoadBalancingPattern.Broker.HeartbeatMsg]:
             sock.send(msg)
           else:
-            self.handle(msg)
+            msgName=msg.__class__.__name__
+            S='; '.join(str(msg).split("\n"))
+            logging.debug("received %s: %s"%(msgName,S))
+            fx='self.handle%s(msg)'%(msgName)
+            eval(fx)
 
 
+  class Client:
+    '''
+      Front-end component for pattern, reliable request-reply mechanism
+       by utilizing retry policy
+    '''
 
+    def __init__(self, endPointList):
+      '''
+        Initialize resources, save endpoint for retry which will require
+        closing/re-opening the socket as the request socket strictly envorces
+        send/receive preventing resending w/o reopening
+      '''
+      self.msg_=None
+      self.endPointList_=endPointList
+      self.socket_=Request(self.endPointList_)
+  
+    def send(self, msg):
+      '''
+        Save the message for possible retry, then send the message
+      '''
+      self.msg_=msg
+      self.socket_.send(self.msg_)
 
+    def recv(self, timeOutMs):
+      '''
+        Wait for the message using the specified time-out, if it didn't arrive
+        perform a linear-retry policy, max 3 retries
+      '''
+      retVal=None
+      timedOut= (not self.socket_.wait(timeOutMs))
+      MaxRetry=3
+      i=0
+      while(timedOut and i < MaxRetry):
+        timedOut= (not self.socket_.wait(timeOutMs))
+        self.socket_=None
+        self.socket_=Request(self.endPointList_)
+        self.send(self.msg_)
+        i+=1
+      if not timedOut:
+        retVal=self.socket_.recv()
+      return retVal
 
+      
