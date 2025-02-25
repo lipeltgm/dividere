@@ -399,7 +399,13 @@ class Dealer(Connector):
       self.socket_.send_multipart([msg[1]])
     else:
       self.socket_.send(msg)
-    
+
+  def sendWithEmptyFrame(self, msg):
+    '''
+      Send message but with preceeding empty identity frame, used to emulate
+      request message protocol (e.g. Dealer-Response connections)
+    '''
+    self.socket_.send_multipart([b'',msg])
 
   def wait(self, timeOutMs):
     '''

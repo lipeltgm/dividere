@@ -17,7 +17,8 @@ devSetup-22.04.1:
 	${SH} sudo pip3 install twine
 	${SH} sudo apt install -y texlive-latex-base
 	${SH} sudo apt install -y texlive-full
-
+	${SH} sudo pip3 install yt-dlp
+	${SH} sudo apt-get install texlive-latex-base texlive-latex-extra texlive-latex-recommended
 docs: msg
 	${SH} cd doc; make
 
@@ -36,6 +37,11 @@ test: msg
 	${SH} cd ./tests; ./uTests.py --verbose 
 	${SH} cd ./tests; ./uTests.py 
 	${SH} cd ./tests; ./uTests.py --quiet
+
+foo:
+	${SH} cd ./tests; ./uTests.py --quiet connectionTests
+foo1:
+	${SH} cd ./tests; ./uTests.py --quiet messagingTests
 
 protobuf:
 	${SH} mkdir temp/

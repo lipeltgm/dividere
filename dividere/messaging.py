@@ -315,6 +315,13 @@ class Dealer:
       env=self.encoder_.encode(msg)
       self.sock_.send(env.SerializeToString())
 
+  def sendWithEmptyFrame(self, msg):
+    '''
+      Send message but with preceeding empty identity frame, used to emulate
+      request message protocol (e.g. Dealer-Response connections)
+    '''
+    env=self.encoder_.encode(msg)
+    self.sock_.sendWithEmptyFrame(env.SerializeToString())
 
 class MtMsgReactor:
   '''

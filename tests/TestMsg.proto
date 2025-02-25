@@ -79,3 +79,9 @@ message MyServiceReq {
 
 message MyServiceRep {
 }
+
+message Msg01 {
+  string content=1;
+}
+
+

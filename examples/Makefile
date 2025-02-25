@@ -11,6 +11,10 @@ setup:
 
 configYolo: yolov3.cfg yolov3.weights coco.data coco.names
 
+darknet:
+	${SH} git clone https://github.com/pjreddie/darknet.git
+	${SH} cd darknet; make
+
 yolov3.cfg:
 	${SH} wget https://raw.githubusercontent.com/pjreddie/darknet/master/cfg/yolov3.cfg
 
@@ -68,7 +72,7 @@ mklink:
 run: mklink clientMsgs_pb2.py clip.mp4 configYolo
 	${SH} ./simplePubSub.py
 	${SH} ./msgReactor.py
-	${SH} ./yoloEx.py
+ 	${SH} ./yoloEx.py
 
 clean:
 	${RM} clientMsgs* 
