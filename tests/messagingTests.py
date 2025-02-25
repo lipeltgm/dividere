@@ -498,24 +498,24 @@ class messagingTests(unittest.TestCase):
 
     p.stop()
 
-  def _test00m(self, cSock, sSock):
+  def _test11(self, cSock, sSock):
     #--test synchronous round-trip using socket pair
     #-- Note:
     #--   Dealer/Response pairs are valid, _but_ sent messages must be preceeded by an empty
     #--    index frame to emulate the req socket protocol
     isDealerResponsePair=type(cSock)==dividere.messaging.Dealer and type(sSock)==dividere.messaging.Response
-    print("testing synchronous round-trip using %s and %s socket pair"%(type(cSock), type(sSock)))
+    logging.debug("testing synchronous round-trip using %s and %s socket pair"%(type(cSock), type(sSock)))
     msg=TestMsg.Msg01()
     if isDealerResponsePair:
       cSock.sendWithEmptyFrame(msg)
     else:
       cSock.send(msg)
     m1=sSock.recv()
-    print('...server socket received: %s'%(type(m1)))
+    logging.debug('...server socket received: %s'%(type(m1)))
     self.assertTrue(msg==m1)
     sSock.send(m1)
     m2=cSock.recv()
-    print('...client socket received: %s'%(type(m2)))
+    logging.debug('...client socket received: %s'%(type(m2)))
     if isDealerResponsePair:
       self.assertTrue(msg==m2[1])
     else:
@@ -523,32 +523,32 @@ class messagingTests(unittest.TestCase):
     cSock=None
     sSock=None
   
-  def test00m(self):
+  def test11(self):
     #--test valid peer-to-peer direct connections for messaging module objects; req/rep, dealer/rep, dealer/dealer
     port=dividere.connection.PortManager.acquire()
-    self._test00m(dividere.messaging.Request('tcp://localhost:%d'%(port)), dividere.messaging.Response('tcp://*:%d'%(port)))
-    self._test00m(dividere.messaging.Dealer('tcp://localhost:%d'%(port)), dividere.messaging.Response('tcp://*:%d'%(port)))
-    self._test00m(dividere.messaging.Dealer('tcp://localhost:%d'%(port)), dividere.messaging.Dealer('tcp://*:%d'%(port)))
+    self._test11(dividere.messaging.Request('tcp://localhost:%d'%(port)), dividere.messaging.Response('tcp://*:%d'%(port)))
+    self._test11(dividere.messaging.Dealer('tcp://localhost:%d'%(port)), dividere.messaging.Response('tcp://*:%d'%(port)))
+    self._test11(dividere.messaging.Dealer('tcp://localhost:%d'%(port)), dividere.messaging.Dealer('tcp://*:%d'%(port)))
   
 
-  def _test00rm(self, cSock, sSock):
+  def _test12(self, cSock, sSock):
     #--test valid peer-to-peer direct connections to a router service socket for messaging sockets
     msg=TestMsg.Msg01()
     cSock.send(msg)
     sSock.send_multipart(sSock.recv_multipart())
     m1=cSock.recv()
-    print(m1)
+    logging.debug('got %s'%(str(m1)))
     self.assertTrue(msg==m1)
   
-  def test00rm(self):
+  def test12(self):
     #--test router connections with compliant messaging sockets
     port=dividere.connection.PortManager.acquire()
     ctx=zmq.Context()
     feSock=ctx.socket(zmq.ROUTER)
     feSock.bind('tcp://*:%d'%(port))
   
-    self._test00rm(dividere.messaging.Request("tcp://localhost:%d"%(port)),feSock)
-    self._test00rm(dividere.messaging.Dealer("tcp://localhost:%d"%(port)),feSock)
+    self._test12(dividere.messaging.Request("tcp://localhost:%d"%(port)),feSock)
+    self._test12(dividere.messaging.Dealer("tcp://localhost:%d"%(port)),feSock)
   
     feSock.close()
     ctx.term()

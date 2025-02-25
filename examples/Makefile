@@ -72,7 +72,7 @@ mklink:
 run: mklink clientMsgs_pb2.py clip.mp4 configYolo
 	${SH} ./simplePubSub.py
 	${SH} ./msgReactor.py
- 	${SH} ./yoloEx.py
+#	${SH} ./yoloEx.py
 
 clean:
 	${RM} clientMsgs* 

@@ -327,7 +327,7 @@ class connectionTests(unittest.TestCase):
     self.assertTrue(m==None)
 
 
-  def _test00c(self, cSock, sSock):
+  def _test15(self, cSock, sSock):
     #--test synchronous round-trip using socket pair
     #-- Note:
     #--   Dealer/Response pairs are valid, _but_ sent messages must be preceeded by an empty
@@ -340,11 +340,11 @@ class connectionTests(unittest.TestCase):
     else:
       cSock.send(msg)
     m1=sSock.recv()
-    print('server got %s'%(m1))
+    logging.debug('server got %s'%(m1))
     self.assertTrue(m1==msg)
     sSock.send(m1)
     m2=cSock.recv()
-    print('client got %s'%(m1))
+    logging.debug('client got %s'%(m1))
     if isDealerResponsePair:
       self.assertTrue(m2[1]==msg)
     else:
@@ -352,39 +352,39 @@ class connectionTests(unittest.TestCase):
     cSock=None
     sSock=None
   
-  def test00c(self):
+  def test15(self):
     #--test valid peer-to-peer direct connections for communications module objects; req/rep, dealer/rep, dealer/dealer
     port=dividere.connection.PortManager.acquire()
-    self._test00c(dividere.connection.Request("tcp://localhost:%d"%(port)), dividere.connection.Response("tcp://*:%d"%(port)))
-    self._test00c(dividere.connection.Dealer("tcp://localhost:%d"%(port)), dividere.connection.Response("tcp://*:%d"%(port)))
-    self._test00c(dividere.connection.Dealer("tcp://localhost:%d"%(port)), dividere.connection.Dealer("tcp://*:%d"%(port)))
+    self._test15(dividere.connection.Request("tcp://localhost:%d"%(port)), dividere.connection.Response("tcp://*:%d"%(port)))
+    self._test15(dividere.connection.Dealer("tcp://localhost:%d"%(port)), dividere.connection.Response("tcp://*:%d"%(port)))
+    self._test15(dividere.connection.Dealer("tcp://localhost:%d"%(port)), dividere.connection.Dealer("tcp://*:%d"%(port)))
   
   
-  def _test00rc(self, cSock, sSock):
+  def _test16(self, cSock, sSock):
     #--test valid peer-to-peer direct connections to a router service socket for connection sockets
     msg=b'foo to you'
     cSock.send(msg)
     m1 = sSock.recv_multipart()
-    print(m1)
+    logging.debug(m1)
     self.assertTrue(m1[-1]==msg); # note: m1=[client id, identity frame (for cSock sock), payload]
     sSock.send_multipart(m1)
     m2=cSock.recv()
     self.assertTrue(msg==m2)
 
-  def test00rc(self):
+  def test16(self):
       #--test router connections with compliant connection sockets
      port=dividere.connection.PortManager.acquire()
      ctx=zmq.Context()
      feSock=ctx.socket(zmq.ROUTER)
      feSock.bind('tcp://*:%d'%(port))
   
-     self._test00rc(dividere.connection.Request("tcp://localhost:%d"%(port)),feSock)
-     self._test00rc(dividere.connection.Dealer("tcp://localhost:%d"%(port)),feSock)
+     self._test16(dividere.connection.Request("tcp://localhost:%d"%(port)),feSock)
+     self._test16(dividere.connection.Dealer("tcp://localhost:%d"%(port)),feSock)
   
      feSock.close()
      ctx.term()
   
-  def _test01lbp(self, cSock, sSock):
+  def _test17(self, cSock, sSock):
     fePort=int(cSock.socket_.last_endpoint.decode('utf-8').split(':')[2])
     bePort=int(sSock.socket_.last_endpoint.decode('utf-8').split(':')[2])
     b=dividere.connection.LoadBalancingPattern.Broker(zmq.ROUTER, fePort, zmq.ROUTER, bePort)
@@ -397,14 +397,14 @@ class connectionTests(unittest.TestCase):
   
     sSock.send(sSock.recv()); #--server echo back
     reply=cSock.recv()
-    print("client received: %s"%(reply))
+    logging.debug("client received: %s"%(reply))
     self.assertTrue(reply==msg)
   
     b.stop()
     cSock=None
     sSock=None
   
-  def _test01lbp(self, cSock, sSock):
+  def _test17(self, cSock, sSock):
     fePort=int(cSock.socket_.last_endpoint.decode('utf-8').split(':')[2])
     bePort=int(sSock.socket_.last_endpoint.decode('utf-8').split(':')[2])
     b=dividere.connection.LoadBalancingPattern.Broker(zmq.ROUTER, fePort, zmq.ROUTER, bePort)
@@ -417,19 +417,20 @@ class connectionTests(unittest.TestCase):
 
     sSock.send(sSock.recv()); #--server echo back
     reply=cSock.recv()
-    print("client received: %s"%(reply))
+    logging.debug("client received: %s"%(reply))
     assert(reply==msg)
 
     b.stop()
     cSock=None
     sSock=None
 
-  def test01lbp(self):
+  def test17(self):
     fePort=dividere.connection.PortManager.acquire()
     bePort=dividere.connection.PortManager.acquire()
-    self._test01lbp(dividere.connection.Dealer('tcp://localhost:%d'%(fePort)),dividere.connection.Dealer('tcp://localhost:%d'%(bePort)))
-    self._test01lbp(dividere.connection.Request('tcp://localhost:%d'%(fePort)),dividere.connection.Dealer('tcp://localhost:%d'%(bePort)))
+    self._test17(dividere.connection.Dealer('tcp://localhost:%d'%(fePort)),dividere.connection.Dealer('tcp://localhost:%d'%(bePort)))
+    self._test17(dividere.connection.Request('tcp://localhost:%d'%(fePort)),dividere.connection.Dealer('tcp://localhost:%d'%(bePort)))
   
-  # self._test01lbp(dividere.connection.Dealer('tcp://localhost:%d'%(fePort)),dividere.connection.Request('tcp://localhost:%d'%(bePort)))
+  # @todo: needs design/framework work to connect request connection
+  # self._test17(dividere.connection.Dealer('tcp://localhost:%d'%(fePort)),dividere.connection.Request('tcp://localhost:%d'%(bePort)))
   
   
