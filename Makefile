@@ -38,6 +38,9 @@ test: msg
 	${SH} cd ./tests; ./uTests.py 
 	${SH} cd ./tests; ./uTests.py --quiet
 
+testx: msg
+	${SH} cd ./tests; ./uTests.py messagingTests
+
 foo:
 	${SH} cd ./tests; ./uTests.py --quiet connectionTests
 foo1:

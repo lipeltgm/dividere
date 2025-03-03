@@ -22,6 +22,8 @@ if __name__ == '__main__':
   userArgs, uTestArgs=parser.parse_known_args(sys.argv)
   if userArgs.verbose:
     logLevel=logging.DEBUG
+    logging.getLogger("dividere.connection").setLevel(logLevel); 
+    logging.getLogger("dividere.messaging").setLevel(logLevel); 
   else:
     logLevel=logging.INFO
 

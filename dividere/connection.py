@@ -12,6 +12,9 @@ import uuid
 import zmq
 
 
+logger=logging.getLogger(__name__)
+logger.setLevel(logging.ERROR)
+
 class PortManager:
   '''
     Singleton supports acquiring an available port for service
@@ -65,7 +68,7 @@ class Connector:
       mon_evt = recv_monitor_message(monitorSock)
       evt.update(mon_evt)
       evt['description'] = EVENT_MAP[evt['event']]
-      logging.debug(f"Event: {evt}")
+      logger.debug(f"Event: {evt}")
       if evt['event'] == zmq.EVENT_MONITOR_STOPPED:
         break
 
@@ -208,7 +211,7 @@ class Request(Connector):
     self.socket_=self.ctx_.socket(zmq.REQ)
     self.tid_=self.registerSocketMonitoring(self.socket_)
     for endPt in endPointList:
-      logging.debug("binding to %s"%(endPt))
+      logger.debug("binding to %s"%(endPt))
       self.socket_.connect(endPt)
     self.poller_=zmq.Poller()
     self.poller_.register(self.socket_,zmq.POLLIN)
@@ -252,7 +255,7 @@ class Response(Connector):
     super(self.__class__,self).__init__()
     self.socket_=self.ctx_.socket(zmq.REP)
     self.tid_=self.registerSocketMonitoring(self.socket_)
-    logging.debug("binding to %s"%(endPoint))
+    logger.debug("binding to %s"%(endPoint))
     #--rep sockets can be 'bound' to ports or connected to ports
     #-- binding generally used for 1-1 connections, connecting 
     #-- used with router/dealer intermediary components, allow
@@ -340,7 +343,7 @@ class Proxy(Connector):
       if socks.get(self.backend) == zmq.POLLIN:
           message = self.backend.recv_multipart()
           self.socket_.send_multipart(message)
-    logging.debug("terminating thread")
+    logger.debug("terminating thread")
 
 class Dealer(Connector):
   '''
@@ -362,10 +365,10 @@ class Dealer(Connector):
     self.tid_=self.registerSocketMonitoring(self.socket_)
     for endPt in endPointList:
       if '*' in endPt:
-        logging.debug("binding to %s"%(endPt))
+        logger.debug("binding to %s"%(endPt))
         self.socket_.bind(endPt)
       else:
-        logging.debug("connecting to %s"%(endPt))
+        logger.debug("connecting to %s"%(endPt))
         self.socket_.connect(endPt)
     self.poller_=zmq.Poller()
     self.poller_.register(self.socket_,zmq.POLLIN)
@@ -453,7 +456,7 @@ class LoadBalancingPattern:
         Process message received from front-end socket.
         Select a server and route the message to the server for processing.
       '''
-      logging.debug("handling fe msg")
+      logger.debug("handling fe msg")
       serverId=self.selectWorker()
       msg.insert(0,serverId)
       self.backend.send_multipart(msg)
@@ -465,13 +468,13 @@ class LoadBalancingPattern:
         server table to indicate a new/existing available server.
         If an app message, route back thru front-end socket.
       '''
-      logging.debug("handling be %s"%(frames))
+      logger.debug("handling be %s"%(frames))
       id=frames[0]
       msg=frames[1:][0]
       if msg in [self.ServerRegisterMsg, self.HeartbeatMsg]:
         self.updateWorker(id)
       else:
-        logging.debug("forwarding to frontend: %s"%(frames))
+        logger.debug("forwarding to frontend: %s"%(frames))
         self.frontend.send_multipart(frames[1:])
   
     def heartbeatServers(self):
@@ -482,12 +485,12 @@ class LoadBalancingPattern:
         should also update the server table in leu of a heartbeat message 
         (reducing the need for heartbeats messages)
       '''
-      logging.debug("servers: %d"%(len(self.queue_.keys())))
+      logger.debug("servers: %d"%(len(self.queue_.keys())))
       tooLate=datetime.datetime.now()-datetime.timedelta(seconds=self.HeartbeatRate*2)
       deadServers=[]
       for id,ts in self.queue_.items():
         if ts < tooLate:
-          logging.debug("dead server: %s"%(id))
+          logger.debug("dead server: %s"%(id))
           deadServers.append(id)
       for e in deadServers:
         self.queue_.pop(e, None)
@@ -502,7 +505,7 @@ class LoadBalancingPattern:
       '''
         Update the worker with new heartbeat expiration time
       '''
-      logging.debug("updating worker queue %s"%(workerId))
+      logger.debug("updating worker queue %s"%(workerId))
       self.queue_[workerId] = datetime.datetime.now() + datetime.timedelta(seconds=self.HeartbeatRate)
   
     def selectWorker(self):
@@ -530,11 +533,11 @@ class LoadBalancingPattern:
       while not self.done_:
         socks = dict(poller.poll(int(self.HeartbeatRate*1000)))
         if socks.get(self.frontend) == zmq.POLLIN:
-          logging.debug("fe msg")
+          logger.debug("fe msg")
           frames = self.frontend.recv_multipart()
           self.handleFeMsg(frames)
         if socks.get(self.backend) == zmq.POLLIN:
-          logging.debug("be msg")
+          logger.debug("be msg")
           frames = self.backend.recv_multipart()
           self.handleBeMsg(frames)
         self.heartbeatServers()
@@ -575,13 +578,13 @@ class LoadBalancingPattern:
       while not self.done_:
         if sock.wait(1000):
           msg=sock.recv()
-          logging.debug("got %s"%(msg))
+          logger.debug("got %s"%(msg))
           if msg in [LoadBalancingPattern.Broker.HeartbeatMsg]:
             sock.send(msg)
           else:
             msgName=msg.__class__.__name__
             S='; '.join(str(msg).split("\n"))
-            logging.debug("received %s: %s"%(msgName,S))
+            logger.debug("received %s: %s"%(msgName,S))
             fx='self.handle%s(msg)'%(msgName)
             eval(fx)
 
