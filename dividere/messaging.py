@@ -9,6 +9,9 @@ import threading
 import time
 import multiprocessing
 
+logger=logging.getLogger(__name__)
+logger.setLevel(logging.ERROR)
+
 #================================================================================
 #-- Encoder/Decoder class; takes in protobuf message, encloses it in a envelope
 #--  message for transport and allowd decoding from the received message
@@ -57,8 +60,7 @@ class ProtoBuffDecoder:
       and return it to the caller.
     '''
     msgDesc=google.protobuf.descriptor_pool.Default().FindMessageTypeByName(msgEnv.msgName)
-    factory=google.protobuf.message_factory.MessageFactory()
-    msgClass=factory.GetPrototype(msgDesc)
+    msgClass=google.protobuf.message_factory.GetMessageClass(msgDesc)
     c=msgClass()
     msgEnv.msg.Unpack(c)
     return c
@@ -382,10 +384,12 @@ class MtMsgReactor:
           msg=el.recv()
           if isinstance(msg, tuple):
             fx='self.handle%s(el,msg[0],msg[1])'%(msg[1].__class__.__name__)
+            logger.debug("calling %s() callback"%(fx))
             eval(fx)
           else:
             msgName=msg.__class__.__name__
             fx='self.handle%s(el,msg)'%(msgName)
+            logger.debug("calling %s() callback"%(fx))
             eval(fx)
 
   def handleShutdownEvent(self,obj,msg):
@@ -442,6 +446,7 @@ class MpMsgReactor:
     '''
     objList_=[]
     for e in objList:
+      logger.debug("calling %s() callback"%(e))
       objList_.append(eval(e))
     objList_.append(Subscriber(shutdownEndPt))
 
@@ -455,10 +460,12 @@ class MpMsgReactor:
           msg=el.recv()
           if isinstance(msg, tuple):
             fx='self.handle%s(el,msg[0],msg[1])'%(msg[1].__class__.__name__)
+            logger.debug("calling %s() callback"%(fx))
             eval(fx)
           else:
             msgName=msg.__class__.__name__
             fx='self.handle%s(el,msg)'%(msgName)
+            logger.debug("calling %s() callback"%(fx))
             eval(fx)
     for e in objList_:
       e=None
