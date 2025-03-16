@@ -459,6 +459,7 @@ class LoadBalancingPattern:
       logger.debug("handling fe msg")
       serverId=self.selectWorker()
       msg.insert(0,serverId)
+      logger.debug("forwarding msg to backend %s"%(serverId))
       self.backend.send_multipart(msg)
   
     def handleBeMsg(self,frames):

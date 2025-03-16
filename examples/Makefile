@@ -8,6 +8,7 @@ clip.mp4: video.mp4
 
 setup: 
 	${SH} sudo apt-get install -y protobuf-compiler
+	${SH} pip3 install numpy cython
 
 configYolo: yolov3.cfg yolov3.weights coco.data coco.names
 

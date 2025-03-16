@@ -405,7 +405,7 @@ class MtMsgReactor:
               logger.debug("calling %s() callback"%(fx))
               eval(fx)
         self.idle(); #--@TODO; runs way too fast
-      print("...done %s"%(self.__class__.__name__))
+      logger.debug("...done %s"%(self.__class__.__name__))
     except Exception as e:
       logger.error("caught exception %s"%(str(e)))
 
@@ -494,113 +494,167 @@ class MpMsgReactor:
     '''
     self.done_=True;
     
-class LoadBalancingPattern:
+class LoadBalancingPattern2:
+  '''
+  General pattern; client(s), broker, server(s).  Clients send requests to broker, broker 
+  determines available server, forwards requests and routes response back to original
+  server.
+  '''
   class Broker:
+    '''
+      Broker acts as the intermediatry between clients and servers,
+      requests coming in from clients are routed to available servers.
+      The broker is also responsible for managing 'active' servers, meaning
+      keeping track of servers that are responsive and available for inbound
+      requests.
+    '''
     HeartbeatRate=3.0
-    class BrokerMsgReactor(messaging.MtMsgReactor):
-      def __init__(self, objList):
-        self.queue_=collections.OrderedDict()
-        self.hbTs_ = datetime.datetime.now() + datetime.timedelta(seconds=LoadBalancingPattern.Broker.HeartbeatRate) 
-        super(self.__class__,self).__init__(objList)
-
-      def updateWorker(self, workerId):
-        print("updating %s"%(workerId))
-        self.queue_[workerId] = datetime.datetime.now() + datetime.timedelta(seconds=LoadBalancingPattern.Broker.HeartbeatRate)
-        print("workers: %s"%(self.queue_.keys()))
-
-
-      def heartbeatServers(self):
-        '''
-          Iterate thru existing server table, if we haven't received a message
-          from a server send a heartbeat to it.  The server will ping-pong the
-          message back resulting in a refreshed table entry.  Application messages
-          should also update the server table in leu of a heartbeat message
-          (reducing the need for heartbeats messages)
-        '''
-        tooLate=datetime.datetime.now()-datetime.timedelta(seconds=LoadBalancingPattern.Broker.HeartbeatRate*2)
-        deadServers=[]
-        for id,ts in self.queue_.items():
-          if ts < tooLate:
-            print("dead server: %s"%(id))
-            deadServers.append(id)
-        for e in deadServers:
-          self.queue_.pop(e, None)
- 
-#       print(type(self.objList_[0]))
-#       print("endpt(1):",self.objList_[1].sock_.socket_.last_endpoint)
-        beSock=self.objList_[0]
-        now=datetime.datetime.now()
-        for id,ts in self.queue_.items():
-          if ts < now:
-            hb=[id,MsgLib.Heartbeat]
-            print("broker sending hb %s"%(datetime.datetime.now()))
-            hbMsg=MsgLib.Heartbeat()
-            hbMsg.id=id
-            beSock.send(hbMsg)
-            print("broker done sending hb %s"%(datetime.datetime.now()))
-  
-      def idle(self):
-#       print("running idle %s"%(self.__class__.__name__))
-        time.sleep(0.25)
-        now=datetime.datetime.now()
-        if self.hbTs_ <= now:
-          self.hbTs_=now + datetime.timedelta(seconds=3)
-          self.heartbeatServers()
-
-      def handleHeartbeat(self, obj, msg):
-#       print("endpt(2):",obj.sock_.socket_.last_endpoint)
-        self.updateWorker(msg.id)
-
     def __init__(self, fePort, bePort):
-#     self.feSock_=messaging.Dealer('tcp://localhost:%d'%(fePort))
-#     self.beSock_=messaging.Dealer('tcp://localhost:%d'%(bePort))
-      self.feSock_=messaging.Dealer('tcp://*:%d'%(fePort))
-      self.beSock_=messaging.Dealer('tcp://*:%d'%(bePort))
-      self.msgHandler_=self.BrokerMsgReactor([self.feSock_, self.beSock_])
+      '''
+        Allocate necessary resources; front-end and back-end sockets, encoder/decoder
+        and background thread for processing.
+      '''
+      self.context_=zmq.Context(1)
+      self.feSock_=self.context_.socket(zmq.ROUTER)
+      self.feSock_.bind('tcp://*:%d'%(fePort))
+      self.beSock_=self.context_.socket(zmq.ROUTER)
+      self.beSock_.bind('tcp://*:%d'%(bePort))
+      self.decoder_=messaging.ProtoBuffDecoder()
+      self.encoder_=messaging.ProtoBuffEncoder()
+      self.queue_=collections.OrderedDict()
+      self.done_ = False
+      self.tid_=threading.Thread(target=self.run,args=())
+      self.tid_.start()
+
 
     def stop(self):
-      self.msgHandler_.stop()
+      '''
+       Stop the reactor.
+      '''
+      self.done_=True
 
     def __del__(self):
-      pass
+      '''
+        Release allocated resources, close sockets and context
+      '''
+      self.feSock_.close()
+      self.beSock_.close()
+      self.context_.term()
 
-  class Client:
-    def __init__(self, endPt):
-      self.sock_=messaging.Dealer(endPt)
+    def heartbeatServers(self):
+      '''
+         Iterate thru existing server table, if we haven't received a message
+         from a server send a heartbeat to it.  The server will ping-pong the
+         message back resulting in a refreshed table entry.  Application messages
+         should also update the server table in leu of a heartbeat message
+         (reducing the need for heartbeats messages)
+       '''
+      tooLate=datetime.datetime.now()-datetime.timedelta(seconds=LoadBalancingPattern2.Broker.HeartbeatRate*2)
+      deadServers=[]
+      for id,ts in self.queue_.items():
+        if ts < tooLate:
+          logger.debug("dead server: %s"%(id))
+          deadServers.append(id)
+      for e in deadServers:
+        self.queue_.pop(e, None)
 
-    def send(self,msg):
-      self.sock_.send(msg)
+      now=datetime.datetime.now()
+      for id,ts in self.queue_.items():
+        if ts < now:
+          hb=[id,MsgLib.Heartbeat]
+          logger.debug("broker sending hb %s"%(datetime.datetime.now()))
+          hbMsg=MsgLib.Heartbeat()
+          hbMsg.id=id
+          env=self.encoder_.encode(hbMsg)
+          S=env.SerializeToString()
+          self.beSock_.send_multipart((id,S))
+          logger.debug("broker done sending hb %s"%(datetime.datetime.now()))
 
-    def wait(self, timeOutMs):
-      return self.sock_.wait(timeOutMs)
+    def run(self):
+      '''
+        Active thread should run 'til stopped by main process.  Poll front/back
+        sockets, processing/routing messages as they come in.  Messages from
+        backend servers should be treated as heartbeats (meaning that
+        inbound messages indicate an 'active' server).  Servers that haven't
+        sent a message for some time should be sent a heartbeat message and
+        expected to respond.  Servers that fail to send a heartbeat, or any message,
+        for a time-out period should be removed from the available server list.
+      '''
+      poller=zmq.Poller()
+      poller.register(self.feSock_,zmq.POLLIN)
+      poller.register(self.beSock_,zmq.POLLIN)
+      while not self.done_:
+        socks = dict(poller.poll(int(self.HeartbeatRate*1000)))
+        if socks.get(self.feSock_) == zmq.POLLIN:
+          logger.debug("fe hit")
+          id,val = self.queue_.popitem(False)
+          m=self.feSock_.recv_multipart()
+          m.insert(0,id)
+          self.beSock_.send_multipart(m)
 
-    def recv(self):
-      return self.sock_.recv()
+        if socks.get(self.beSock_) == zmq.POLLIN:
+          logger.debug("be hit")
+          frames=self.beSock_.recv_multipart()
+          self.queue_[frames[0]] = datetime.datetime.now() + datetime.timedelta(seconds=LoadBalancingPattern2.Broker.HeartbeatRate)
 
-  class Server():
-    class ServerMsgReactor(messaging.MtMsgReactor):
+          env=MsgLib.msgEnvelope()
+          S=b''.join(frames[1:])
+          logger.debug("forwarding to fe: %s"%(str(frames)))
+          self.feSock_.send_multipart(frames[1:])
+        self.heartbeatServers()
+
+  class Server:
+   '''
+   Server abstraction, connects and HB's with broker.
+   '''
+   class ServerMsgReactor(messaging.MtMsgReactor):
+      '''
+        @todo; active code?
+      '''
       def __init__(self, objList):
-        #-- initialize resources, then notify broker the server is available
-        #--  for requests via HB msg
+        '''
+          Initialize resources, then notify broker the server is available
+          for requests via HB msg
+        '''
         super(self.__class__,self).__init__(objList)
         self.sendHeartbeat()
 
       def sendHeartbeat(self):
+        '''
+          Send a heartbeat message
+        '''
         sock=self.objList_[0]
         id=sock.sock_.socket_.getsockopt(zmq.IDENTITY)
         msg=MsgLib.Heartbeat()
         msg.id=id
         sock.send(msg)
-        
+
       def handleHeartbeat(self, obj, msg):
-        #--inbound HB message implies broker wants to know if server is still
-        #-- alive, send it a hb msg
-        print("%s got HB msg %s"%(self.__class__.__name__,str(msg)))
+        '''
+           Inbound HB message implies broker wants to know if server is still
+            alive, send it a hb msg
+        '''
+        logger.debug("%s got HB msg %s"%(self.__class__.__name__,str(msg)))
         self.sendHeartbeat()
 
-    def stop(self):
-      self.msgHandler_.stop()
+   def __init__(self,endPt):
+     '''
+       Start the message handler
+     '''
+     self.msgHandler_=self.ServerMsgReactor([messaging.Dealer(endPt)])
 
-    def __init__(self, endPt):
-      self.msgHandler_=self.ServerMsgReactor([messaging.Dealer(endPt)])
+   def stop(self):
+     '''
+       Stop the message handler
+     '''
+     self.msgHandler_.stop()
 
+  class Client:
+    '''
+      @todo: client abstraction
+    '''
+    def __init__(self):
+      '''
+       @todo stuff-n-stuff
+      '''
+      pass

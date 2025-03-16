@@ -37,3 +37,7 @@ message ServiceLookupRep {
 
 message ShutdownEvent {
 }
+
+message Heartbeat {
+  string id=1;
+}
