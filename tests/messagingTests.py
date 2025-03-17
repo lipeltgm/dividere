@@ -562,25 +562,25 @@ class messagingTests(unittest.TestCase):
     feSock.close()
     ctx.term()
   
-  def testZZ(self):
-    fePort=dividere.connection.PortManager.acquire()
-    bePort=dividere.connection.PortManager.acquire()
-    b=dividere.messaging.LoadBalancingPattern2.Broker(fePort,bePort)
+# def testZZ(self):
+#   fePort=dividere.connection.PortManager.acquire()
+#   bePort=dividere.connection.PortManager.acquire()
+#   b=dividere.messaging.LoadBalancingPattern2.Broker(fePort,bePort)
 
-    s=dividere.messaging.LoadBalancingPattern2.Server('tcp://localhost:%d'%(bePort))
-    time.sleep(10)
+#   s=dividere.messaging.LoadBalancingPattern2.Server('tcp://localhost:%d'%(bePort))
+#   time.sleep(10)
 
-    c=dividere.messaging.Dealer('tcp://localhost:%d'%(fePort))
-    m=TestMsg.testMsg01()
-    m.field1='something'
-    c.send(m)
-    time.sleep(2)
-    print("client got back: %s"%(c.recv()))
-    s.stop()
-    s=None
-    c=None
-    b.stop()
-    b=None
+#   c=dividere.messaging.Dealer('tcp://localhost:%d'%(fePort))
+#   m=TestMsg.testMsg01()
+#   m.field1='something'
+#   c.send(m)
+#   time.sleep(2)
+#   print("client got back: %s"%(c.recv()))
+#   s.stop()
+#   s=None
+#   c=None
+#   b.stop()
+#   b=None
 
   def testZZZ(self):
     fePort=dividere.connection.PortManager.acquire()

@@ -618,10 +618,7 @@ class LoadBalancingPattern2:
           Initialize resources, then notify broker the server is available
           for requests via HB msg
         '''
-        print("calling super init()")
-#       super(self.__class__,self).__init__(objList)
         super().__init__(objList)
-        print("sending hb")
         self.sendHeartbeat()
 
       def sendHeartbeat(self):

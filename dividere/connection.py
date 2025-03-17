@@ -124,7 +124,7 @@ class Publisher(Connector):
        Refer to ZMQ documentation for details on available transport
        and syntax of endpoint.
     '''
-    super(self.__class__,self).__init__()
+    super().__init__()
     self.socket_=self.ctx_.socket(zmq.PUB)
     self.tid_=self.registerSocketMonitoring(self.socket_)
     self.socket_.bind(endPoint)
@@ -153,7 +153,7 @@ class Subscriber(Connector):
        Refer to ZMQ documentation for details on available transport
        and syntax of endpoint.
     '''
-    super(self.__class__,self).__init__()
+    super().__init__()
     self.socket_=self.ctx_.socket(zmq.SUB)
     self.tid_=self.registerSocketMonitoring(self.socket_)
     self.socket_.connect(endPoint)
@@ -207,7 +207,7 @@ class Request(Connector):
     '''
     if not isinstance(endPointList, list):
       endPointList=[endPointList]
-    super(self.__class__,self).__init__()
+    super().__init__()
     self.socket_=self.ctx_.socket(zmq.REQ)
     self.tid_=self.registerSocketMonitoring(self.socket_)
     for endPt in endPointList:
@@ -252,7 +252,7 @@ class Response(Connector):
       create a socket, register it for monitoring, and connect
       it to the specified endpoint
     '''
-    super(self.__class__,self).__init__()
+    super().__init__()
     self.socket_=self.ctx_.socket(zmq.REP)
     self.tid_=self.registerSocketMonitoring(self.socket_)
     logger.debug("binding to %s"%(endPoint))
@@ -301,7 +301,7 @@ class Proxy(Connector):
       Front-end utilizes the base class socket_ attribute, adds a backend
       socket.  Binds to two known ports
     '''
-    super(self.__class__,self).__init__()
+    super().__init__()
     self.socket_ = self.ctx_.socket(zmq.ROUTER)
     self.tid_=self.registerSocketMonitoring(self.socket_)
     self.backend = self.ctx_.socket(zmq.DEALER)
@@ -359,7 +359,7 @@ class Dealer(Connector):
     '''
     if not isinstance(endPointList, list):
       endPointList=[endPointList]
-    super(self.__class__,self).__init__()
+    super().__init__()
     self.socket_=self.ctx_.socket(zmq.DEALER)
     self.socket_.setsockopt_string(zmq.IDENTITY, str(uuid.uuid4()))
     self.tid_=self.registerSocketMonitoring(self.socket_)

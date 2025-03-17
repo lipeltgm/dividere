@@ -40,7 +40,7 @@ class YoloSolver:
 class MtYoloSolver(threading.Thread):
   class DealerWorkerMsgReactor(dividere.messaging.MtMsgReactor):
     def __init__(self,obj):
-      super(self.__class__,self).__init__(obj)
+      super().__init__(obj)
       self.yolo_=YoloSolver()
   
     def handleImageMsg(self, obj, id, msg):
