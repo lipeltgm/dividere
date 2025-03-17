@@ -11,6 +11,7 @@ import os
 import threading
 import time
 import multiprocessing
+import sys
 import zmq
 import uuid
 
@@ -397,11 +398,13 @@ class MtMsgReactor:
             msg=el.recv()
             if isinstance(msg, tuple):
               fx='self.handle%s(el,msg[0],msg[1])'%(msg[1].__class__.__name__)
+              print("calling %s() callback"%(fx))
               logger.debug("calling %s() callback"%(fx))
               eval(fx)
             else:
               msgName=msg.__class__.__name__
               fx='self.handle%s(el,msg)'%(msgName)
+              print("calling %s callback"%(fx))
               logger.debug("calling %s() callback"%(fx))
               eval(fx)
         self.idle(); #--@TODO; runs way too fast
@@ -526,7 +529,6 @@ class LoadBalancingPattern2:
       self.tid_=threading.Thread(target=self.run,args=())
       self.tid_.start()
 
-
     def stop(self):
       '''
        Stop the reactor.
@@ -593,7 +595,7 @@ class LoadBalancingPattern2:
           self.beSock_.send_multipart(m)
 
         if socks.get(self.beSock_) == zmq.POLLIN:
-          logger.debug("be hit")
+          print("be hit")
           frames=self.beSock_.recv_multipart()
           self.queue_[frames[0]] = datetime.datetime.now() + datetime.timedelta(seconds=LoadBalancingPattern2.Broker.HeartbeatRate)
 
@@ -616,7 +618,10 @@ class LoadBalancingPattern2:
           Initialize resources, then notify broker the server is available
           for requests via HB msg
         '''
-        super(self.__class__,self).__init__(objList)
+        print("calling super init()")
+#       super(self.__class__,self).__init__(objList)
+        super().__init__(objList)
+        print("sending hb")
         self.sendHeartbeat()
 
       def sendHeartbeat(self):
@@ -637,11 +642,14 @@ class LoadBalancingPattern2:
         logger.debug("%s got HB msg %s"%(self.__class__.__name__,str(msg)))
         self.sendHeartbeat()
 
-   def __init__(self,endPt):
+   def __init__(self,endPt, mh=None):
      '''
        Start the message handler
      '''
-     self.msgHandler_=self.ServerMsgReactor([messaging.Dealer(endPt)])
+     if mh:
+       self.msgHandler_=mh
+     else:
+       self.msgHandler_=self.ServerMsgReactor([messaging.Dealer(endPt)])
 
    def stop(self):
      '''

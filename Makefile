@@ -44,7 +44,7 @@ testx: msg
 foo:
 	${SH} cd ./tests; ./uTests.py connectionTests
 foo1:
-	${SH} cd ./tests; ./uTests.py messagingTests
+	${SH} cd ./tests; ./uTests.py messagingTests.testZZZ
 
 protobuf:
 	${SH} mkdir temp/

@@ -10,6 +10,13 @@ import threading
 import zmq
 import sandbox
 
+class MyMsgHandlerXXX(dividere.messaging.LoadBalancingPattern2.Server.ServerMsgReactor):
+#class MyMsgHandlerXXX(dividere.messaging.MtMsgReactor):
+
+  def handletestMsg01(self, sock, id, msg):
+     print("@@@@ HIT @@@@")
+     sock.send((id,msg))
+
 class messagingEncoderTests(unittest.TestCase):
   @staticmethod
   def testMsg01Creator():
@@ -555,85 +562,6 @@ class messagingTests(unittest.TestCase):
     feSock.close()
     ctx.term()
   
-###  def testXX(self):
-###    self.assertTrue(True)
-###    fePort=dividere.connection.PortManager.acquire()
-###    bePort=dividere.connection.PortManager.acquire()
-###    b=dividere.connection.LoadBalancingPattern.Broker(zmq.ROUTER, fePort, zmq.ROUTER, bePort)
-###
-###    s=dividere.connection.Dealer('tcp://localhost:%d'%(bePort))
-###    s.send(dividere.connection.LoadBalancingPattern.Broker.ServerRegisterMsg)
-###    time.sleep(1)
-###
-###    c=dividere.connection.Request('tcp://localhost:%d'%(fePort))
-###
-###    testMsg=b'some test message'
-###    c.send(testMsg)
-###
-###    while s.wait(1000):
-###      msg=s.recv()
-###      print('server got %s'%(str(msg)))
-###      s.send(msg)
-###
-###    c=None
-###    s=None
-###    b.stop()
-###
-###  def testXY(self):
-###    fePort=dividere.connection.PortManager.acquire()
-###    bePort=dividere.connection.PortManager.acquire()
-###
-###    b=dividere.messaging.LoadBalancingPattern2.Broker(fePort, bePort)
-###    time.sleep(1)
-###
-###    s=dividere.messaging.LoadBalancingPattern2.Server('tcp://localhost:%d'%(bePort))
-###    time.sleep(dividere.messaging.LoadBalancingPattern2.Broker.HeartbeatRate*3)
-###
-###    s.stop()
-###    s=None
-###    time.sleep(dividere.messaging.LoadBalancingPattern2.Broker.HeartbeatRate*10)
-###
-###    b.stop()
-###    b=None
-###
-###  def testYY(self):
-###    fePort=dividere.connection.PortManager.acquire()
-###    bePort=dividere.connection.PortManager.acquire()
-###    b=sandbox.LoadBalancingPattern2.Broker(fePort,bePort)
-###
-###    time.sleep(1)
-###    s=dividere.messaging.Dealer('tcp://localhost:%d'%(bePort))
-###    time.sleep(1)
-###    s.send(MsgLib.Heartbeat())
-###
-###    c=dividere.messaging.Dealer('tcp://localhost:%d'%(fePort))
-###    time.sleep(1)
-###    c.send(MsgLib.Heartbeat())
-###
-###    id,m=s.recv()
-###    print("server got msg: %s"%(str(m)))
-###    s.send((id,m))
-###
-###    print("client waiting on response")
-###    m=c.recv()
-###    print('client got:', type(m))
-###    
-###    print("server hb?",s.recv())
-###    s.send(MsgLib.Heartbeat())
-###    
-###  def testYZ(self):
-###    fePort=dividere.connection.PortManager.acquire()
-###    bePort=dividere.connection.PortManager.acquire()
-###    b=sandbox.LoadBalancingPattern2.Broker(fePort,bePort)
-###
-###    s=sandbox.LoadBalancingPattern2.Server('tcp://localhost:%d'%(bePort))
-###    time.sleep(10)
-###
-###    c=dividere.messaging.Dealer('tcp://localhost:%d'%(fePort))
-###    c.send(TestMsg.testMsg01())
-###    time.sleep(2)
-###    s.stop()
-
   def testZZ(self):
     fePort=dividere.connection.PortManager.acquire()
     bePort=dividere.connection.PortManager.acquire()
@@ -643,7 +571,37 @@ class messagingTests(unittest.TestCase):
     time.sleep(10)
 
     c=dividere.messaging.Dealer('tcp://localhost:%d'%(fePort))
-    c.send(TestMsg.testMsg01())
+    m=TestMsg.testMsg01()
+    m.field1='something'
+    c.send(m)
     time.sleep(2)
+    print("client got back: %s"%(c.recv()))
     s.stop()
+    s=None
     c=None
+    b.stop()
+    b=None
+
+  def testZZZ(self):
+    fePort=dividere.connection.PortManager.acquire()
+    bePort=dividere.connection.PortManager.acquire()
+    b=dividere.messaging.LoadBalancingPattern2.Broker(fePort,bePort)
+
+    mh=MyMsgHandlerXXX([dividere.messaging.Dealer('tcp://localhost:%d'%(bePort))])
+    s=dividere.messaging.LoadBalancingPattern2.Server('tcp://localhost:%d'%(bePort),mh)
+    time.sleep(10)
+
+    c=dividere.messaging.Dealer('tcp://localhost:%d'%(fePort))
+    for i in range(0,3):
+      m=TestMsg.testMsg01()
+      m.field1='something-%d'%(i)
+      print("sending msg: %s"%(m))
+      c.send(m)
+#     time.sleep(2)
+      self.assertTrue(c.wait(1000))
+      print("client got back: %s"%(c.recv()))
+    s.stop()
+    s=None
+    c=None
+    b.stop()
+    b=None
