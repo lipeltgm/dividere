@@ -37,8 +37,10 @@ test: msg
 	${SH} cd ./tests; ./uTests.py 
 	${SH} cd ./tests; ./uTests.py --quiet
 	${SH} cd ./tests; ./uTests.py --verbose 
+	${SH} cd ./tests; ./uTests.py --veryverbose 
 
 foo: msg
+	${SH} cd ./tests; ./uTests.py --verbose messagingTests.test14
 	${SH} cd ./tests; ./uTests.py messagingTests.test14
 
 protobuf:

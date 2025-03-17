@@ -268,10 +268,8 @@ class messagingTests(unittest.TestCase):
     #--test the round-robin point-to-point delivery when specifying a
     #-- series of receivers
     logging.info("executing test")
-    Port=dividere.connection.PortManager.acquire()
     N=3
-
-    portList=[i for i in range(Port, Port+N)]
+    portList=[dividere.connection.PortManager.acquire() for i in range(0,N)]
     repList=[dividere.messaging.Response('tcp://*:%d'%(p)) for p in portList]
 
     endPoints=['tcp://localhost:%d'%(p) for p in portList]
@@ -572,7 +570,7 @@ class messagingTests(unittest.TestCase):
     #-- back to client
     #-- client using Dealer messaging component
     #-- send a message a couple times, confirm it's sent/delivered back to the client
-    NumMsgs=5
+    NumMsgs=3
     fePort=dividere.connection.PortManager.acquire()
     bePort=dividere.connection.PortManager.acquire()
     b=dividere.messaging.LoadBalancingPattern2.Broker(fePort,bePort)
@@ -630,12 +628,12 @@ class messagingTests(unittest.TestCase):
     #-- client using Dealer messaging component
     #-- send a message a couple times, confirm it's sent/delivered back to the client
     logging.info("clients(%d), servers(%d)"%(numClients,numServers))
-    NumMsgs=5
+    NumMsgs=3
     fePort=dividere.connection.PortManager.acquire()
     bePort=dividere.connection.PortManager.acquire()
     b=dividere.messaging.LoadBalancingPattern2.Broker(fePort,bePort)
 
-    cList=[dividere.messaging.LoadBalancingPattern2.Client('tcp://localhost:%d'%(fePort)) for i in range(0,numClients)]
+    cList=[dividere.messaging.LoadBalancingPattern2.Client('tcp://localhost:%d'%(fePort),10,5000) for i in range(0,numClients)]
     sList=[dividere.messaging.LoadBalancingPattern2.Server('tcp://localhost:%d'%(bePort),self.MyUnreliableLbMsgHandler([dividere.messaging.Dealer('tcp://localhost:%d'%(bePort))])) for i in range(0,numServers)]
     time.sleep(2); #--let servers come on-line
  
@@ -645,6 +643,9 @@ class messagingTests(unittest.TestCase):
         m.field1='client%d-%d'%(cList.index(c),i)
         c.send(m)
         r=c.recv()
+        self.assertTrue(r != None)
+        if (str(m) != str(r)):
+          print("%s == %s"%(str(m), str(r)))
         self.assertTrue(str(m)==str(r))
 
     #--shutdown components

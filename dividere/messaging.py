@@ -608,7 +608,8 @@ class LoadBalancingPattern2:
    '''
    class ServerMsgReactor(messaging.MtMsgReactor):
       '''
-        @todo; active code?
+        Message reactor for server component, manages heartbeat and shutdown messages
+        as part of the abstraction, all other messages to be handled by derived class.
       '''
       def __init__(self, objList):
         '''
@@ -619,6 +620,18 @@ class LoadBalancingPattern2:
         self.sendHeartbeat()
 
       def resetHbTimer(self):
+        '''
+          Heartbeat policy between broker and server is initiated by the broker for 
+          active servers.  This will detect a server failing while waiting for a
+          request.  Servers that fail during the servicing of a request are deemed
+          'inactive', removed from the active server list from the broker immediately
+          before forwarding the request.  Those servers require a server-initiated
+          heartbeat to be re-added to the active server list in the broker.  This
+          heartbeat timer indicates when a HB should be initiated, and sent, to the 
+          broker.  Note, the HB timer is a bit longer than the policy HB rate to
+          avoid the broker and server(s) initiating HB messages nearing the same time
+          (e.g. duplicating initiating HBs)
+        '''
         #--set the hb timer a bit long to prevent server & broker initiating a HB at the same time
         self.hbExpireTime_=datetime.datetime.now()+datetime.timedelta(seconds=LoadBalancingPattern2.Broker.HeartbeatRate*1.5)
 
@@ -643,6 +656,10 @@ class LoadBalancingPattern2:
 
 
       def idle(self):
+        '''
+          The idle callback is called by the message handler abstraction
+          to allow non-message-event behaviors (e.g. initiating message)
+        '''
         if (datetime.datetime.now() > self.hbExpireTime_):
           self.sendHeartbeat()
 
@@ -663,11 +680,13 @@ class LoadBalancingPattern2:
 
   class Client:
     '''
-      @todo: client abstraction
+      Lazy-Pirate Reliable Request/Response; tracks last message sent
+      and if response isn't received within a time-out, message is resent
+      using a max retry policy.
     '''
     def __init__(self, endPt, maxRetries=5, retryTimeOutMs=5000):
       '''
-       @todo stuff-n-stuff
+       Initialize needed resources.
       '''
       self.maxRetries_=maxRetries
       self.retryTimeOutMs_=retryTimeOutMs
@@ -676,15 +695,20 @@ class LoadBalancingPattern2:
       self.sock_=messaging.Dealer(endPt)
 
     def send(self, msg):
+      '''
+        Send the message, retain it in case of need for retrying
+      '''
       self.lastMsg_=msg
       self.sock_.send(self.lastMsg_)
 
     def recv(self):
-      #--extend the recv() protocol to wait for a message to
-      #-- be returned within the retry time-out, if no message
-      #-- has been received, resend the last message (with max retry count)
-      #-- the intent is to detect/recover from a non-responsive server,
-      #-- network preventing transfer,... (refer to LazyPirate Reliable Req/Rep pattern)
+      '''
+      Extend the recv() protocol to wait for a message to
+       be returned within the retry time-out, if no message
+       has been received, resend the last message (with max retry count)
+       the intent is to detect/recover from a non-responsive server,
+       network preventing transfer,... (refer to LazyPirate Reliable Req/Rep pattern)
+      '''
       gotMsg=self.sock_.wait(self.retryTimeOutMs_)
       while (not gotMsg and self.retryCount_ < self.maxRetries_):
         self.retryCount_+=1

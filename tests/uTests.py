@@ -18,14 +18,18 @@ if __name__ == '__main__':
   descript='Integration/Unit tests for framework'
   parser=argparse.ArgumentParser(description=descript)
   parser.add_argument('--verbose',action='store_true',default=False)
+  parser.add_argument('--veryverbose',action='store_true',default=False)
   parser.add_argument('--quiet',action='store_true',default=False)
   userArgs, uTestArgs=parser.parse_known_args(sys.argv)
   if userArgs.verbose:
     logLevel=logging.DEBUG
-    logging.getLogger("dividere.connection").setLevel(logLevel); 
-    logging.getLogger("dividere.messaging").setLevel(logLevel); 
   else:
     logLevel=logging.INFO
+
+  if userArgs.veryverbose:
+    logLevel=logging.DEBUG
+    logging.getLogger("dividere.connection").setLevel(logLevel); 
+    logging.getLogger("dividere.messaging").setLevel(logLevel); 
 
   if userArgs.quiet:
     logLevel=logging.ERROR
