@@ -35,16 +35,11 @@ test: msg
 	${SH} cd ./tests; protoc --proto_path=./ --python_out=. TestMsg.proto
         #--run tests w/ and w/o debug logging
 	${SH} cd ./tests; ./uTests.py 
-#	${SH} cd ./tests; ./uTests.py --quiet
-#	${SH} cd ./tests; ./uTests.py --verbose 
+	${SH} cd ./tests; ./uTests.py --quiet
+	${SH} cd ./tests; ./uTests.py --verbose 
 
-testx: msg
-	${SH} cd ./tests; ./uTests.py messagingTests
-
-foo:
-	${SH} cd ./tests; ./uTests.py connectionTests
-foo1:
-	${SH} cd ./tests; ./uTests.py messagingTests.testZZZ
+foo: msg
+	${SH} cd ./tests; ./uTests.py messagingTests.test14
 
 protobuf:
 	${SH} mkdir temp/

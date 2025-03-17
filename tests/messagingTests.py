@@ -8,14 +8,6 @@ import uuid
 import time
 import threading
 import zmq
-import sandbox
-
-class MyMsgHandlerXXX(dividere.messaging.LoadBalancingPattern2.Server.ServerMsgReactor):
-#class MyMsgHandlerXXX(dividere.messaging.MtMsgReactor):
-
-  def handletestMsg01(self, sock, id, msg):
-     print("@@@@ HIT @@@@")
-     sock.send((id,msg))
 
 class messagingEncoderTests(unittest.TestCase):
   @staticmethod
@@ -300,6 +292,7 @@ class messagingTests(unittest.TestCase):
 
   def test05(self):
     #--test simple proxy usage, one client, one worker
+    logging.info("executing test")
     self.assertTrue(True)
     fePort=dividere.connection.PortManager.acquire()
     bePort=dividere.connection.PortManager.acquire()
@@ -367,6 +360,7 @@ class messagingTests(unittest.TestCase):
 
   def test06(self):
     #--test a variety of cardinality of clients and workers
+    logging.info("executing test")
     self._test06(1,1)
     self._test06(1,5)
     self._test06(5,1)
@@ -376,6 +370,7 @@ class messagingTests(unittest.TestCase):
 
   def test07(self):
     #--test dealer <==> router/dealer <==> dealer configuration
+    logging.info("executing test")
     fePort=dividere.connection.PortManager.acquire()
     bePort=dividere.connection.PortManager.acquire()
     proxy=dividere.connection.Proxy(fePort,bePort)
@@ -402,6 +397,7 @@ class messagingTests(unittest.TestCase):
 
   def test08(self):
     #--test dealer <==> dealer peer-to-peer configuration
+    logging.info("executing test")
     port=dividere.connection.PortManager.acquire()
     c=dividere.messaging.Dealer('tcp://localhost:%d'%(port))
     w=dividere.messaging.Dealer('tcp://*:%d'%(port))
@@ -480,6 +476,7 @@ class messagingTests(unittest.TestCase):
     proxy.stop()
 
   def test09(self):
+    logging.info("executing test")
     self._test09(1,1)
     self._test09(5,1)
     self._test09(1,5)
@@ -487,6 +484,7 @@ class messagingTests(unittest.TestCase):
     self._test09(50,10)
 
   def test10(self):
+    logging.info("executing test")
     fePort=dividere.connection.PortManager.acquire()
     bePort=dividere.connection.PortManager.acquire()
     p=dividere.connection.LoadBalancingPattern.Broker(zmq.ROUTER, fePort, zmq.ROUTER, bePort)
@@ -534,6 +532,7 @@ class messagingTests(unittest.TestCase):
   
   def test11(self):
     #--test valid peer-to-peer direct connections for messaging module objects; req/rep, dealer/rep, dealer/dealer
+    logging.info("executing test")
     port=dividere.connection.PortManager.acquire()
     self._test11(dividere.messaging.Request('tcp://localhost:%d'%(port)), dividere.messaging.Response('tcp://*:%d'%(port)))
     self._test11(dividere.messaging.Dealer('tcp://localhost:%d'%(port)), dividere.messaging.Response('tcp://*:%d'%(port)))
@@ -551,6 +550,7 @@ class messagingTests(unittest.TestCase):
   
   def test12(self):
     #--test router connections with compliant messaging sockets
+    logging.info("executing test")
     port=dividere.connection.PortManager.acquire()
     ctx=zmq.Context()
     feSock=ctx.socket(zmq.ROUTER)
@@ -562,46 +562,114 @@ class messagingTests(unittest.TestCase):
     feSock.close()
     ctx.term()
   
-# def testZZ(self):
-#   fePort=dividere.connection.PortManager.acquire()
-#   bePort=dividere.connection.PortManager.acquire()
-#   b=dividere.messaging.LoadBalancingPattern2.Broker(fePort,bePort)
+  class MyLbMsgHandler(dividere.messaging.LoadBalancingPattern2.Server.ServerMsgReactor):
+    def handletestMsg01(self, sock, id, msg):
+       sock.send((id,msg))
 
-#   s=dividere.messaging.LoadBalancingPattern2.Server('tcp://localhost:%d'%(bePort))
-#   time.sleep(10)
-
-#   c=dividere.messaging.Dealer('tcp://localhost:%d'%(fePort))
-#   m=TestMsg.testMsg01()
-#   m.field1='something'
-#   c.send(m)
-#   time.sleep(2)
-#   print("client got back: %s"%(c.recv()))
-#   s.stop()
-#   s=None
-#   c=None
-#   b.stop()
-#   b=None
-
-  def testZZZ(self):
+  def _test13(self, numClients, numServers):
+    #--test LoadBalancingPattern for single client/server
+    #-- create a server, with custom message handler which echos inbound messages 
+    #-- back to client
+    #-- client using Dealer messaging component
+    #-- send a message a couple times, confirm it's sent/delivered back to the client
+    NumMsgs=5
     fePort=dividere.connection.PortManager.acquire()
     bePort=dividere.connection.PortManager.acquire()
     b=dividere.messaging.LoadBalancingPattern2.Broker(fePort,bePort)
 
-    mh=MyMsgHandlerXXX([dividere.messaging.Dealer('tcp://localhost:%d'%(bePort))])
-    s=dividere.messaging.LoadBalancingPattern2.Server('tcp://localhost:%d'%(bePort),mh)
-    time.sleep(10)
+    cList=[dividere.messaging.Dealer('tcp://localhost:%d'%(fePort)) for i in range(0,numClients)]
+    sList=[dividere.messaging.LoadBalancingPattern2.Server('tcp://localhost:%d'%(bePort),self.MyLbMsgHandler([dividere.messaging.Dealer('tcp://localhost:%d'%(bePort))])) for i in range(0,numServers)]
+    time.sleep(2); #--let servers come on-line
+ 
+    for i in range(0,NumMsgs):
+      for c in cList:
+        m=TestMsg.testMsg01()
+        m.field1='client%d-%d'%(cList.index(c),i)
+        c.send(m)
+        self.assertTrue(c.wait(1000))
+        r=c.recv()
+        self.assertTrue(str(m)==str(r))
 
-    c=dividere.messaging.Dealer('tcp://localhost:%d'%(fePort))
-    for i in range(0,3):
-      m=TestMsg.testMsg01()
-      m.field1='something-%d'%(i)
-      print("sending msg: %s"%(m))
-      c.send(m)
-#     time.sleep(2)
-      self.assertTrue(c.wait(1000))
-      print("client got back: %s"%(c.recv()))
-    s.stop()
-    s=None
-    c=None
+    #--shutdown components
+    for c in cList:
+      c=None
+    for s in sList:
+      s.stop()
+      s=None
     b.stop()
     b=None
+      
+
+  def test13(self):
+    #--test constraint; numClients <= numServers
+    logging.info("executing test")
+    for c in range(1,5):
+      for s in range(c,c+5):
+        logging.info("testing configuration servers(%d), clients(%d)"%(c,s))
+        self._test13(c,s)
+ 
+  class MyUnreliableLbMsgHandler(dividere.messaging.LoadBalancingPattern2.Server.ServerMsgReactor):
+
+    def __init__(self, endPt):
+      self.failSend_=True
+      super().__init__(endPt)
+
+    def handletestMsg01(self, sock, id, msg):
+       if not self.failSend_:
+         logging.debug("sending response(%s):%s"%(type(msg),str(msg).rstrip()))
+         sock.send((id,msg))
+       else:
+         logging.debug("ignoring message")
+       self.failSend_ = not self.failSend_
+       logging.debug("self.failSend_: %s"%(self.failSend_))
+
+  def _test14(self, numClients, numServers):
+    #--test LoadBalancingPattern for single client/server
+    #-- create a server, with custom message handler which echos inbound messages 
+    #-- back to client
+    #-- client using Dealer messaging component
+    #-- send a message a couple times, confirm it's sent/delivered back to the client
+    logging.info("clients(%d), servers(%d)"%(numClients,numServers))
+    NumMsgs=5
+    fePort=dividere.connection.PortManager.acquire()
+    bePort=dividere.connection.PortManager.acquire()
+    b=dividere.messaging.LoadBalancingPattern2.Broker(fePort,bePort)
+
+    cList=[dividere.messaging.LoadBalancingPattern2.Client('tcp://localhost:%d'%(fePort)) for i in range(0,numClients)]
+    sList=[dividere.messaging.LoadBalancingPattern2.Server('tcp://localhost:%d'%(bePort),self.MyUnreliableLbMsgHandler([dividere.messaging.Dealer('tcp://localhost:%d'%(bePort))])) for i in range(0,numServers)]
+    time.sleep(2); #--let servers come on-line
+ 
+    for i in range(0,NumMsgs):
+      for c in cList:
+        m=TestMsg.testMsg01()
+        m.field1='client%d-%d'%(cList.index(c),i)
+        c.send(m)
+        r=c.recv()
+        self.assertTrue(str(m)==str(r))
+
+    #--shutdown components
+    for c in cList:
+      c=None
+    for s in sList:
+      s.stop()
+      s=None
+    b.stop()
+    b=None
+      
+  def test14(self):
+    #--test client retry; lazy pirate component of LB pattern
+    #-- Mh pongs back every-other message, requiring client to 
+    #-- use retry policy
+    #-- more clients than servers will force retrying
+    #-- servers, when they don't respond, may have to wait for 
+    #-- initiating or responding to a HB from the broker before
+    #-- they become 'active' again
+    logging.info("executing test")
+    self._test14(1,1)
+    self._test14(5,1)
+    self._test14(1,5)
+
+    for i in range(0,3):
+      numClients=random.randint(1,8)
+      numServers=random.randint(1,8)
+      self._test14(numClients,numServers)

@@ -115,8 +115,8 @@ class connectionTests(unittest.TestCase):
     rep=None
 
   def _testReqRepCardinality(self, N):
-    Port=dividere.connection.PortManager.acquire()
-    portList=[i for i in range(Port,Port+N)]
+    portList=[dividere.connection.PortManager.acquire() for i in range(0,N)]
+
     tidList=[]
     for port in portList:
       repEndPt='tcp://*:%d'%(port)

@@ -398,13 +398,11 @@ class MtMsgReactor:
             msg=el.recv()
             if isinstance(msg, tuple):
               fx='self.handle%s(el,msg[0],msg[1])'%(msg[1].__class__.__name__)
-              print("calling %s() callback"%(fx))
               logger.debug("calling %s() callback"%(fx))
               eval(fx)
             else:
               msgName=msg.__class__.__name__
               fx='self.handle%s(el,msg)'%(msgName)
-              print("calling %s callback"%(fx))
               logger.debug("calling %s() callback"%(fx))
               eval(fx)
         self.idle(); #--@TODO; runs way too fast
@@ -595,7 +593,6 @@ class LoadBalancingPattern2:
           self.beSock_.send_multipart(m)
 
         if socks.get(self.beSock_) == zmq.POLLIN:
-          print("be hit")
           frames=self.beSock_.recv_multipart()
           self.queue_[frames[0]] = datetime.datetime.now() + datetime.timedelta(seconds=LoadBalancingPattern2.Broker.HeartbeatRate)
 
@@ -621,6 +618,10 @@ class LoadBalancingPattern2:
         super().__init__(objList)
         self.sendHeartbeat()
 
+      def resetHbTimer(self):
+        #--set the hb timer a bit long to prevent server & broker initiating a HB at the same time
+        self.hbExpireTime_=datetime.datetime.now()+datetime.timedelta(seconds=LoadBalancingPattern2.Broker.HeartbeatRate*1.5)
+
       def sendHeartbeat(self):
         '''
           Send a heartbeat message
@@ -630,6 +631,7 @@ class LoadBalancingPattern2:
         msg=MsgLib.Heartbeat()
         msg.id=id
         sock.send(msg)
+        self.resetHbTimer()
 
       def handleHeartbeat(self, obj, msg):
         '''
@@ -638,6 +640,11 @@ class LoadBalancingPattern2:
         '''
         logger.debug("%s got HB msg %s"%(self.__class__.__name__,str(msg)))
         self.sendHeartbeat()
+
+
+      def idle(self):
+        if (datetime.datetime.now() > self.hbExpireTime_):
+          self.sendHeartbeat()
 
    def __init__(self,endPt, mh=None):
      '''
@@ -658,8 +665,38 @@ class LoadBalancingPattern2:
     '''
       @todo: client abstraction
     '''
-    def __init__(self):
+    def __init__(self, endPt, maxRetries=5, retryTimeOutMs=5000):
       '''
        @todo stuff-n-stuff
       '''
-      pass
+      self.maxRetries_=maxRetries
+      self.retryTimeOutMs_=retryTimeOutMs
+      self.lastMsg_=None
+      self.retryCount_=0
+      self.sock_=messaging.Dealer(endPt)
+
+    def send(self, msg):
+      self.lastMsg_=msg
+      self.sock_.send(self.lastMsg_)
+
+    def recv(self):
+      #--extend the recv() protocol to wait for a message to
+      #-- be returned within the retry time-out, if no message
+      #-- has been received, resend the last message (with max retry count)
+      #-- the intent is to detect/recover from a non-responsive server,
+      #-- network preventing transfer,... (refer to LazyPirate Reliable Req/Rep pattern)
+      gotMsg=self.sock_.wait(self.retryTimeOutMs_)
+      while (not gotMsg and self.retryCount_ < self.maxRetries_):
+        self.retryCount_+=1
+        logger.debug("failed to get a response, retry(%d) send of last message(%s): %s"%(self.retryCount_,type(self.lastMsg_),self.lastMsg_))
+        self.sock_.send(self.lastMsg_)
+        gotMsg=self.sock_.wait(self.retryTimeOutMs_)
+      reply=None
+      if gotMsg:
+        reply=self.sock_.recv()
+        self.retryCount_=0
+      else:
+        logger.debug("failed to get a response, terminating retry")
+  
+      return reply
+
