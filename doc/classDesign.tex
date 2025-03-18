@@ -220,3 +220,47 @@
     \end{class}
   \end{package}
 \end{tikzpicture}
+\\
+\\
+\begin{tikzpicture}
+  \begin{package}{ServiceRegistry}
+    \begin{class}{Server}{0,0}
+      \operation{-\_\_init\_\_}
+      \operation{-\_\_del\_\_}
+      \operation{+stop}
+      \operation{-run}
+      \operation{-handleRegisterService}
+      \operation{-handleUnregisterService}
+      \operation{-handleServiceLookupReq}
+    \end{class}
+    \begin{class}{Client}{9,0}
+      \operation{-\_\_init\_\_}
+      \operation{+registerService}
+      \operation{+unregisterService}
+      \operation{+getLocalIp}
+      \operation{+getPublicIp}
+      \operation{+lookupService}
+    \end{class}
+  \end{package}
+\end{tikzpicture}
+\\
+\\
+\begin{tikzpicture}
+  \begin{package}{service}
+    \begin{abstractclass}{Server}{0,0}
+      \operation{-\_\_init\_\_}
+      \operation{-\_\_del\_\_}
+      \operation{+stop}
+      \operation{+send}
+      \operation{+wait}
+      \operation{+recv}
+      \operation{-run}
+      \operation{-reregisterThread}
+      \operation{-setupSocket}
+    \end{abstractclass}
+    \begin{class}{MyService}{5,-5}
+      \inherit{Server}
+      \operation{-handleSomeReqMsg}
+    \end{class}
+  \end{package}
+\end{tikzpicture}
