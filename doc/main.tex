@@ -3,6 +3,11 @@
 \usepackage{listings}
 \usepackage[usestackEOL]{stackengine}
 \usepackage{verbatim}
+\usepackage{tikz} 
+\usetikzlibrary{arrows,shadows}
+\usepackage{pgf-umlsd}
+\usepackage{pgf-umlcd}
+\usepackage{tikz} 
 
 \newcommand{\insertPython}[1]{ 
 \begin{tcolorbox}[title=#1,coltitle=lightgray,width=6in]
@@ -81,6 +86,7 @@ This layer mirrors many of the components from the communications layer with a s
 \section{Service}
 The service layer provides service-based abstactions, including a 'Service' abstract class that registers with the centralized, server-based, name-service.
 
+\input{classDesign}
 \chapter{Examples}
 \insertPython{simplePubSub.py}
 \insertPython{msgReactor.py}

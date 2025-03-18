@@ -560,7 +560,7 @@ class messagingTests(unittest.TestCase):
     feSock.close()
     ctx.term()
   
-  class MyLbMsgHandler(dividere.messaging.LoadBalancingPattern2.Server.ServerMsgReactor):
+  class MyLbMsgHandler(dividere.messaging.LoadBalancingPattern.Server.ServerMsgReactor):
     def handletestMsg01(self, sock, id, msg):
        sock.send((id,msg))
 
@@ -573,10 +573,10 @@ class messagingTests(unittest.TestCase):
     NumMsgs=3
     fePort=dividere.connection.PortManager.acquire()
     bePort=dividere.connection.PortManager.acquire()
-    b=dividere.messaging.LoadBalancingPattern2.Broker(fePort,bePort)
+    b=dividere.messaging.LoadBalancingPattern.Broker(fePort,bePort)
 
     cList=[dividere.messaging.Dealer('tcp://localhost:%d'%(fePort)) for i in range(0,numClients)]
-    sList=[dividere.messaging.LoadBalancingPattern2.Server('tcp://localhost:%d'%(bePort),self.MyLbMsgHandler([dividere.messaging.Dealer('tcp://localhost:%d'%(bePort))])) for i in range(0,numServers)]
+    sList=[dividere.messaging.LoadBalancingPattern.Server('tcp://localhost:%d'%(bePort),self.MyLbMsgHandler([dividere.messaging.Dealer('tcp://localhost:%d'%(bePort))])) for i in range(0,numServers)]
     time.sleep(2); #--let servers come on-line
  
     for i in range(0,NumMsgs):
@@ -606,7 +606,7 @@ class messagingTests(unittest.TestCase):
         logging.info("testing configuration servers(%d), clients(%d)"%(c,s))
         self._test13(c,s)
  
-  class MyUnreliableLbMsgHandler(dividere.messaging.LoadBalancingPattern2.Server.ServerMsgReactor):
+  class MyUnreliableLbMsgHandler(dividere.messaging.LoadBalancingPattern.Server.ServerMsgReactor):
 
     def __init__(self, endPt):
       self.failSend_=True
@@ -631,10 +631,10 @@ class messagingTests(unittest.TestCase):
     NumMsgs=3
     fePort=dividere.connection.PortManager.acquire()
     bePort=dividere.connection.PortManager.acquire()
-    b=dividere.messaging.LoadBalancingPattern2.Broker(fePort,bePort)
+    b=dividere.messaging.LoadBalancingPattern.Broker(fePort,bePort)
 
-    cList=[dividere.messaging.LoadBalancingPattern2.Client('tcp://localhost:%d'%(fePort),10,5000) for i in range(0,numClients)]
-    sList=[dividere.messaging.LoadBalancingPattern2.Server('tcp://localhost:%d'%(bePort),self.MyUnreliableLbMsgHandler([dividere.messaging.Dealer('tcp://localhost:%d'%(bePort))])) for i in range(0,numServers)]
+    cList=[dividere.messaging.LoadBalancingPattern.Client('tcp://localhost:%d'%(fePort),10,5000) for i in range(0,numClients)]
+    sList=[dividere.messaging.LoadBalancingPattern.Server('tcp://localhost:%d'%(bePort),self.MyUnreliableLbMsgHandler([dividere.messaging.Dealer('tcp://localhost:%d'%(bePort))])) for i in range(0,numServers)]
     time.sleep(2); #--let servers come on-line
  
     for i in range(0,NumMsgs):

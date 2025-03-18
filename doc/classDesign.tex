@@ -1,0 +1,222 @@
+\chapter{Class Design}
+
+
+%\begin{sequencediagram}
+%    \newinst{act}{Actor}
+%    \newthread{nr}{NetRoute}
+%    \newthread{nr}{NetScan}
+%    \begin{call}{act}{ Buscar una red}{nr}{ redes }
+%        %\begin{call}{act}{ Buscar una red}{nr}{ redes }
+%    \end{call}
+%\end{sequencediagram}
+
+\begin{tikzpicture}
+  \begin{package}{Communications}
+    \begin{class}{PortManager}{0,8}
+      \operation{+acquire}
+      \operation{}
+    \end{class}
+  
+    \begin{class}{Connector}{4,4}
+      \operation{-socketEventMonitor}
+      \operation{-registerSocketMonitoring}
+      \operation{+\_\_init\_\_}
+      \operation{+\_\_del\_\_}
+      \operation{}
+    \end{class}
+  
+    \begin{class}{Publisher}{0,0}
+      \inherit{Connector}
+      \operation{-\_\_init\_\_}
+      \operation{+send}
+    \end{class}
+  
+    \begin{class}{Subscriber}{4.5,-3}
+      \inherit{Connector}
+      \operation{-\_\_init\_\_}
+      \operation{+subscribe}
+      \operation{+recv}
+      \operation{+wait}
+    \end{class}
+  
+    \begin{class}{Request}{9,0}
+      \inherit{Connector}
+      \operation{-\_\_init\_\_}
+      \operation{+send}
+      \operation{+recv}
+      \operation{+wait}
+    \end{class}
+  
+    \begin{class}{Response}{0,-6}
+      \inherit{Connector}
+      \operation{-\_\_init\_\_}
+      \operation{+send}
+      \operation{+recv}
+      \operation{+wait}
+    \end{class}
+  
+    \begin{class}{Dealer}{9,-6}
+      \inherit{Connector}
+      \operation{-\_\_init\_\_}
+      \operation{+send}
+      \operation{+sendWithEmptyFrame}
+      \operation{+recv}
+      \operation{+wait}
+    \end{class}
+  
+    \begin{class}{Proxy}{4,-10}
+      \inherit{Connector}
+      \operation{-\_\_init\_\_}
+      \operation{+stop}
+      \operation{-run}
+    \end{class}
+  \end{package}
+
+\end{tikzpicture}
+
+\begin{tikzpicture}
+  \begin{package}{Communications-LoadBalancingPattern}
+    \begin{class}{Broker}{0,0}
+      \operation{-\_\_init\_\_}
+      \operation{+stop}
+      \operation{-handleFeMsg}
+      \operation{-handleBeMsg}
+      \operation{-heartbeatServers}
+      \operation{-updateWorker}
+      \operation{-selectWorker}
+      \operation{-run}
+    \end{class}
+    \begin{abstractclass}{Worker}{5,-5}
+      \operation{-\_\_init\_\_}
+      \operation{+stop}
+      \operation{-run}
+      \operation{\#handleXXX}
+    \end{abstractclass}
+    \begin{class}{Client}{-5,-5}
+      \operation{-\_\_init\_\_}
+      \operation{+send}
+      \operation{+recv}
+    \end{class}
+    \begin{class}{MyWorker}{0,-9}
+      \inherit{Worker}
+        \operation{+handleMsgXXX}
+    \end{class}
+  \end{package}
+\end{tikzpicture}
+\\
+\\
+\begin{tikzpicture}
+  \begin{package}{Messaging}
+    \begin{class}{Request}{0,0}
+      \operation{-\_\_init\_\_}
+      \operation{-\_\_del\_\_}
+      \operation{+send}
+      \operation{+wait}
+      \operation{+recv}
+    \end{class}
+    \begin{class}{Response}{9,0}
+      \operation{-\_\_init\_\_}
+      \operation{-\_\_del\_\_}
+      \operation{+send}
+      \operation{+wait}
+      \operation{+recv}
+    \end{class}
+    \begin{class}{Dealer}{4.5,3.5}
+      \operation{-\_\_init\_\_}
+      \operation{-\_\_del\_\_}
+      \operation{+send}
+      \operation{+sendWithEmptyFrame}
+      \operation{+wait}
+      \operation{+recv}
+    \end{class}
+    \begin{class}{Publisher}{0,6}
+      \operation{-\_\_init\_\_}
+      \operation{-\_\_del\_\_}
+      \operation{+send}
+    \end{class}
+    \begin{class}{Subscriber}{9,6}
+      \operation{-\_\_init\_\_}
+      \operation{-\_\_del\_\_}
+      \operation{+wait}
+      \operation{+recv}
+    \end{class}
+
+    \begin{class}{ProtoBuffEncoder}{1,-5}
+      \operation{-\_\_init\_\_}
+      \operation{+encode}
+    \end{class}
+    \begin{class}{ProtoBuffDecoder}{8,-5}
+      \operation{-\_\_init\_\_}
+      \operation{+decode}
+    \end{class}
+
+    \association {Subscriber}{}{}{ProtoBuffDecoder}{}{}
+    \association {Publisher}{}{}{ProtoBuffEncoder}{}{}
+    \association {Dealer}{}{}{ProtoBuffEncoder}{}{}
+    \association {Dealer}{}{}{ProtoBuffDecoder}{}{}
+    \association {Request}{}{}{ProtoBuffEncoder}{}{}
+    \association {Request}{}{}{ProtoBuffDecoder}{}{}
+    \association {Response}{}{}{ProtoBuffEncoder}{}{}
+    \association {Response}{}{}{ProtoBuffDecoder}{}{}
+  \end{package}
+\end{tikzpicture}
+\\
+\\
+\begin{tikzpicture}
+  \begin{package}{Messaging}
+    \begin{class}{MtMsgReactor}{-3,0}
+      \operation{-\_\_init\_\_}
+      \operation{-\_\_del\_\_}
+      \operation{+stop}
+      \operation{\#idle}
+      \operation{-msgHandler}
+      \operation{-handleShutdownEvent}
+    \end{class}
+    \begin{class}{MpMsgReactor}{3,0}
+      \operation{-\_\_init\_\_}
+      \operation{-\_\_del\_\_}
+      \operation{+stop}
+      \operation{-msgHandler}
+      \operation{-handleShutdownEvent}
+    \end{class}
+  \end{package}
+\end{tikzpicture}
+\\
+\\
+\begin{tikzpicture}
+  \begin{package}{Messaging}
+    \begin{class}{Broker}{0,0}
+      \operation{-\_\_init\_\_}
+      \operation{-\_\_del\_\_}
+      \operation{+stop}
+      \operation{-heartbeatServers}
+      \operation{-run}
+    \end{class}
+    \begin{class}{Client}{-3,-5}
+      \operation{-\_\_init\_\_}
+      \operation{-\_\_del\_\_}
+      \operation{+send}
+      \operation{+wait}
+      \operation{+recv}
+    \end{class}
+    \begin{class}{Server}{3,-5}
+      \operation{-\_\_init\_\_}
+      \operation{+stop}
+    \end{class}
+    \begin{abstractclass}{ServerMsgReactor}{4,-9}
+      \operation{-\_\_init\_\_}
+      \operation{-\_\_del\_\_}
+      \operation{-resetHbTimer}
+      \operation{-sendHeartbeat}
+      \operation{-handleHeartbeat}
+      \operation{\#idle}
+    \end{abstractclass}
+    \association {Server}{}{}{ServerMsgReactor}{}{}
+
+    \begin{class}{MyServerMsgHandler}{2,-15}
+      \inherit{ServerMsgReactor}
+      \operation{-handleMsg01}
+      \operation{-idle}
+    \end{class}
+  \end{package}
+\end{tikzpicture}

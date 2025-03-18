@@ -495,7 +495,7 @@ class MpMsgReactor:
     '''
     self.done_=True;
     
-class LoadBalancingPattern2:
+class LoadBalancingPattern:
   '''
   General pattern; client(s), broker, server(s).  Clients send requests to broker, broker 
   determines available server, forwards requests and routes response back to original
@@ -549,7 +549,7 @@ class LoadBalancingPattern2:
          should also update the server table in leu of a heartbeat message
          (reducing the need for heartbeats messages)
        '''
-      tooLate=datetime.datetime.now()-datetime.timedelta(seconds=LoadBalancingPattern2.Broker.HeartbeatRate*2)
+      tooLate=datetime.datetime.now()-datetime.timedelta(seconds=LoadBalancingPattern.Broker.HeartbeatRate*2)
       deadServers=[]
       for id,ts in self.queue_.items():
         if ts < tooLate:
@@ -594,7 +594,7 @@ class LoadBalancingPattern2:
 
         if socks.get(self.beSock_) == zmq.POLLIN:
           frames=self.beSock_.recv_multipart()
-          self.queue_[frames[0]] = datetime.datetime.now() + datetime.timedelta(seconds=LoadBalancingPattern2.Broker.HeartbeatRate)
+          self.queue_[frames[0]] = datetime.datetime.now() + datetime.timedelta(seconds=LoadBalancingPattern.Broker.HeartbeatRate)
 
           env=MsgLib.msgEnvelope()
           S=b''.join(frames[1:])
@@ -633,7 +633,7 @@ class LoadBalancingPattern2:
           (e.g. duplicating initiating HBs)
         '''
         #--set the hb timer a bit long to prevent server & broker initiating a HB at the same time
-        self.hbExpireTime_=datetime.datetime.now()+datetime.timedelta(seconds=LoadBalancingPattern2.Broker.HeartbeatRate*1.5)
+        self.hbExpireTime_=datetime.datetime.now()+datetime.timedelta(seconds=LoadBalancingPattern.Broker.HeartbeatRate*1.5)
 
       def sendHeartbeat(self):
         '''

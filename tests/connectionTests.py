@@ -50,7 +50,7 @@ class connectionTests(unittest.TestCase):
     #-- in-order
     logging.info("executing test")
     NumPortsToTest=20
-    portList=[random.randint(5000,9999) for i in range(1,NumPortsToTest)]
+    portList=[dividere.connection.PortManager.acquire() for i in range(0,NumPortsToTest)]
     for port in portList:
       pubEndpt='tcp://*:%d'%(port)
       subEndpt='tcp://localhost:%d'%(port)
